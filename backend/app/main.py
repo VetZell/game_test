@@ -10,7 +10,12 @@ from sqlalchemy.orm import selectinload
 
 from .database import Base, engine, get_session
 from .models import MarinaState, User
-from .schemas import PlayerCreate, PlayerResponse
+from .schemas import (
+    GameActionRequest,
+    GameActionResponse,
+    PlayerCreate,
+    PlayerResponse,
+)
 from .telegram_auth import TelegramAuthError, validate_init_data
 
 
@@ -30,7 +35,7 @@ async def lifespan(_: FastAPI):
         await engine.dispose()
 
 
-app = FastAPI(title="Day Marina API", version="0.4.1", lifespan=lifespan)
+app = FastAPI(title="Day Marina API", version="0.5.0", lifespan=lifespan)
 
 allowed_origins = {
     "http://localhost:5173",
@@ -90,9 +95,23 @@ async def get_or_create_player(
     return created_user
 
 
+def clamp(value: int) -> int:
+    return max(0, min(100, value))
+
+
+def authenticate(init_data: str):
+    try:
+        return validate_init_data(init_data)
+    except TelegramAuthError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=str(exc),
+        ) from exc
+
+
 @app.get("/")
 def root() -> dict[str, str]:
-    return {"name": "Day Marina API", "status": "running", "version": "0.4.1"}
+    return {"name": "Day Marina API", "status": "running", "version": "0.5.0"}
 
 
 @app.get("/health")
@@ -115,14 +134,7 @@ async def telegram_login(
     payload: TelegramLoginRequest,
     session: AsyncSession = Depends(get_session),
 ) -> User:
-    try:
-        telegram_user = validate_init_data(payload.init_data)
-    except TelegramAuthError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=str(exc),
-        ) from exc
-
+    telegram_user = authenticate(payload.init_data)
     return await get_or_create_player(
         PlayerCreate(
             telegram_id=telegram_user.id,
@@ -130,6 +142,59 @@ async def telegram_login(
             first_name=telegram_user.first_name,
         ),
         session,
+    )
+
+
+@app.post("/api/v1/actions", response_model=GameActionResponse)
+async def perform_action(
+    payload: GameActionRequest,
+    session: AsyncSession = Depends(get_session),
+) -> GameActionResponse:
+    telegram_user = authenticate(payload.init_data)
+    user = await session.scalar(player_query(telegram_user.id))
+    if user is None:
+        user = await get_or_create_player(
+            PlayerCreate(
+                telegram_id=telegram_user.id,
+                username=telegram_user.username,
+                first_name=telegram_user.first_name,
+            ),
+            session,
+        )
+
+    marina = user.marina
+    messages = {
+        "hug": "Марина прижалась к тебе и улыбнулась ❤️",
+        "coffee": "Спасибо! Именно такой кофе мне и был нужен ☕",
+        "talk": "Мне стало намного легче после нашего разговора.",
+    }
+
+    if payload.action == "hug":
+        marina.love = clamp(marina.love + 8)
+        marina.attachment = clamp(marina.attachment + 4)
+        marina.mood = clamp(marina.mood + 3)
+        user.experience += 5
+    elif payload.action == "coffee":
+        marina.energy = clamp(marina.energy + 12)
+        marina.mood = clamp(marina.mood + 4)
+        user.coins = max(0, user.coins - 15)
+        user.experience += 4
+    elif payload.action == "talk":
+        marina.mood = clamp(marina.mood + 10)
+        marina.trust = clamp(marina.trust + 5)
+        marina.calm = clamp(marina.calm + 4)
+        user.experience += 6
+    else:
+        raise HTTPException(status_code=400, detail="Неизвестное действие")
+
+    await session.commit()
+    refreshed = await session.scalar(player_query(telegram_user.id))
+    if refreshed is None:
+        raise HTTPException(status_code=500, detail="Не удалось сохранить действие")
+
+    return GameActionResponse(
+        message=messages[payload.action],
+        player=PlayerResponse.model_validate(refreshed),
     )
 
 
