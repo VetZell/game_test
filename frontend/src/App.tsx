@@ -28,6 +28,7 @@ type ActionResponse = {
   player: Player
 }
 
+const APP_VERSION = '0.6.0-actions-debug'
 const API_URL = (
   import.meta.env.VITE_API_URL || 'https://web-production-9b804.up.railway.app'
 ).replace(/\/$/, '')
@@ -44,7 +45,7 @@ export default function App() {
   const [loading, setLoading] = useState(true)
   const [busyAction, setBusyAction] = useState<string | null>(null)
   const [message, setMessage] = useState('Я немного сонная. Сделаешь мне кофе?')
-  const [initData, setInitData] = useState('')
+  const [diagnostic, setDiagnostic] = useState(`Версия ${APP_VERSION}`)
 
   useEffect(() => {
     const webApp = window.Telegram?.WebApp
@@ -54,19 +55,20 @@ export default function App() {
     webApp?.setBackgroundColor('#0b0914')
 
     async function login() {
-      if (!webApp?.initData) {
+      const currentInitData = webApp?.initData || ''
+      if (!currentInitData) {
         setError('Открой игру через кнопку Telegram-бота.')
         setLoading(false)
         return
       }
 
-      setInitData(webApp.initData)
-
       try {
+        setDiagnostic(`Вход через ${API_URL}`)
         const response = await fetch(`${API_URL}/api/v1/auth/telegram`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ init_data: webApp.initData }),
+          body: JSON.stringify({ init_data: currentInitData }),
+          cache: 'no-store',
         })
 
         if (!response.ok) {
@@ -75,6 +77,7 @@ export default function App() {
         }
 
         setPlayer(await response.json())
+        setDiagnostic(`Готово · ${APP_VERSION}`)
       } catch (reason) {
         setError(reason instanceof Error ? reason.message : 'Не удалось войти в игру')
       } finally {
@@ -86,17 +89,29 @@ export default function App() {
   }, [])
 
   async function performAction(action: string) {
-    if (!initData || busyAction) return
+    if (busyAction) return
+
+    const currentInitData = window.Telegram?.WebApp?.initData || ''
+    if (!currentInitData) {
+      setError('Telegram не передал данные авторизации. Закрой и снова открой игру.')
+      return
+    }
 
     setBusyAction(action)
     setError(null)
+    setDiagnostic(`Нажато: ${action}…`)
+    setMessage('Подожди секунду…')
+    window.Telegram?.WebApp?.HapticFeedback?.selectionChanged()
 
     try {
       const response = await fetch(`${API_URL}/api/v1/actions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ init_data: initData, action }),
+        body: JSON.stringify({ init_data: currentInitData, action }),
+        cache: 'no-store',
       })
+
+      setDiagnostic(`Ответ действия: ${response.status}`)
 
       if (!response.ok) {
         const payload = await response.json().catch(() => null)
@@ -106,9 +121,13 @@ export default function App() {
       const result: ActionResponse = await response.json()
       setPlayer(result.player)
       setMessage(result.message)
-      window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('light')
+      setDiagnostic(`Сохранено · опыт ${result.player.experience}`)
+      window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success')
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Не удалось выполнить действие')
+      const messageText = reason instanceof Error ? reason.message : 'Не удалось выполнить действие'
+      setError(messageText)
+      setMessage('Что-то не получилось. Попробуй ещё раз.')
+      setDiagnostic(`Ошибка: ${messageText}`)
       window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('error')
     } finally {
       setBusyAction(null)
@@ -133,6 +152,7 @@ export default function App() {
       <main className="game-shell status-screen">
         <h1>День Марины</h1>
         <p>{error}</p>
+        <small>{diagnostic}</small>
       </main>
     )
   }
@@ -147,9 +167,9 @@ export default function App() {
           <div>
             <p className="eyebrow">День {marina.day} · {marina.period === 'morning' ? 'Утро' : marina.period}</p>
             <h1>День Марины</h1>
-            <small>Привет, {playerName} · Опыт {player!.experience}</small>
+            <small>Привет, {playerName} · Опыт {player.experience}</small>
           </div>
-          <div className="currency">🪙 {player!.coins.toLocaleString('ru-RU')}</div>
+          <div className="currency">🪙 {player.coins.toLocaleString('ru-RU')}</div>
         </header>
 
         <div className="stats-grid">
@@ -178,11 +198,15 @@ export default function App() {
           </div>
         </div>
 
-        {error && <div className="glass-card" style={{ padding: 12, marginBottom: 12 }}>{error}</div>}
+        <div className="glass-card" style={{ padding: 10, marginTop: 12, fontSize: 12 }}>
+          {diagnostic}
+        </div>
+        {error && <div className="glass-card" style={{ padding: 12, marginTop: 10 }}>{error}</div>}
 
         <section className="actions">
           {actions.map(({ id, title, reward, icon: Icon }) => (
             <button
+              type="button"
               className="action-card"
               key={id}
               disabled={busyAction !== null}
@@ -197,10 +221,10 @@ export default function App() {
       </section>
 
       <nav className="bottom-nav">
-        <button className="active"><Home size={20} /><span>Главная</span></button>
-        <button><ShoppingBag size={20} /><span>Магазин</span></button>
-        <button><Shirt size={20} /><span>Гардероб</span></button>
-        <button><Trophy size={20} /><span>Награды</span></button>
+        <button type="button" className="active"><Home size={20} /><span>Главная</span></button>
+        <button type="button"><ShoppingBag size={20} /><span>Магазин</span></button>
+        <button type="button"><Shirt size={20} /><span>Гардероб</span></button>
+        <button type="button"><Trophy size={20} /><span>Награды</span></button>
       </nav>
     </main>
   )
