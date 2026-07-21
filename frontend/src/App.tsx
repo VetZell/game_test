@@ -28,7 +28,7 @@ type ActionResponse = {
   player: Player
 }
 
-const APP_VERSION = '0.6.0-actions-debug'
+const APP_VERSION = '0.6.1-actions-debug'
 const API_URL = (
   import.meta.env.VITE_API_URL || 'https://web-production-9b804.up.railway.app'
 ).replace(/\/$/, '')
@@ -76,7 +76,8 @@ export default function App() {
           throw new Error(payload?.detail || `Ошибка авторизации: ${response.status}`)
         }
 
-        setPlayer(await response.json())
+        const loadedPlayer: Player = await response.json()
+        setPlayer(loadedPlayer)
         setDiagnostic(`Готово · ${APP_VERSION}`)
       } catch (reason) {
         setError(reason instanceof Error ? reason.message : 'Не удалось войти в игру')
@@ -147,18 +148,18 @@ export default function App() {
     return <main className="game-shell status-screen">Загружаем день Марины…</main>
   }
 
-  if (error && !player) {
+  if (!player) {
     return (
       <main className="game-shell status-screen">
         <h1>День Марины</h1>
-        <p>{error}</p>
+        <p>{error || 'Не удалось загрузить игрока.'}</p>
         <small>{diagnostic}</small>
       </main>
     )
   }
 
-  const marina = player!.marina
-  const playerName = player!.first_name || 'Игрок'
+  const marina = player.marina
+  const playerName = player.first_name || 'Игрок'
 
   return (
     <main className="game-shell">
