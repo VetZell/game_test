@@ -33,3 +33,13 @@ class PlayerResponse(BaseModel):
     coins: int
     crystals: int
     marina: MarinaStateResponse
+
+
+class GameActionRequest(BaseModel):
+    init_data: str
+    action: str
+
+
+class GameActionResponse(BaseModel):
+    message: str
+    player: PlayerResponse
