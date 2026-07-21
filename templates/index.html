@@ -10,32 +10,49 @@
 </head>
 <body>
     <main class="game-shell">
-        <section class="welcome-card" aria-labelledby="game-title">
+        <section id="welcome-screen" class="welcome-card" aria-labelledby="game-title">
             <div class="sun" aria-hidden="true">☀️</div>
             <p class="eyebrow">Уютная история в Telegram</p>
             <h1 id="game-title">День Марины</h1>
-            <p class="subtitle">
-                Помоги Марине прожить добрый день, сохранить настроение,
-                отдохнуть и почувствовать заботу.
-            </p>
+            <p class="subtitle">Помоги Марине прожить добрый день, сохранить настроение, отдохнуть и почувствовать заботу.</p>
+            <div class="preview" aria-hidden="true"><span>🌅</span><span>☕</span><span>💬</span><span>🌙</span></div>
+            <button id="start-button" class="primary-button" type="button">Начать день</button>
+            <p id="welcome-status" class="status" aria-live="polite">Первый день уже готов начаться.</p>
+        </section>
 
-            <div class="preview" aria-hidden="true">
-                <span>🌅</span>
-                <span>☕</span>
-                <span>💬</span>
-                <span>🌙</span>
-            </div>
+        <section id="game-screen" class="game-screen hidden" aria-label="Утро Марины">
+            <header class="game-header">
+                <div><p class="eyebrow">День 1</p><h2>Доброе утро</h2></div>
+                <div class="time-badge">08:00 🌅</div>
+            </header>
 
-            <button id="start-button" class="start-button" type="button">
-                Начать день
-            </button>
+            <section class="stats" aria-label="Состояние Марины">
+                <div class="stat"><span>❤️ Любовь</span><strong id="love-value">70</strong><div class="bar"><i id="love-bar"></i></div></div>
+                <div class="stat"><span>😊 Настроение</span><strong id="mood-value">62</strong><div class="bar"><i id="mood-bar"></i></div></div>
+                <div class="stat"><span>⚡ Энергия</span><strong id="energy-value">45</strong><div class="bar"><i id="energy-bar"></i></div></div>
+                <div class="stat"><span>🍽 Сытость</span><strong id="hunger-value">38</strong><div class="bar"><i id="hunger-bar"></i></div></div>
+                <div class="stat"><span>🕊 Спокойствие</span><strong id="calm-value">58</strong><div class="bar"><i id="calm-bar"></i></div></div>
+            </section>
 
-            <p id="status" class="status" aria-live="polite">
-                Первый день уже готов начаться.
-            </p>
+            <section class="room">
+                <div class="window"><span class="cloud">☁️</span><span class="sun-small">☀️</span></div>
+                <div class="plant">🪴</div>
+                <div class="lamp">💡</div>
+                <div id="speech" class="speech">Доброе утро… Я ещё немного сонная.</div>
+                <div id="marina" class="marina" aria-label="Марина">👩🏻</div>
+                <div class="bed">🛏️</div>
+                <div class="rug"></div>
+            </section>
+
+            <section class="actions" aria-label="Действия">
+                <button class="action-button" data-action="coffee">☕<span>Кофе</span></button>
+                <button class="action-button" data-action="breakfast">🥞<span>Завтрак</span></button>
+                <button class="action-button" data-action="sleep">😴<span>Ещё поспать</span></button>
+                <button class="action-button" data-action="message">💌<span>Добрые слова</span></button>
+            </section>
+            <p id="game-status" class="status game-status" aria-live="polite">Выбери первое утреннее действие.</p>
         </section>
     </main>
-
     <script src="{{ url_for('static', path='/app.js') }}" defer></script>
 </body>
 </html>
