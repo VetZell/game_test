@@ -1,5 +1,24 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Coffee, Heart, Home, ShoppingBag, Shirt, Trophy, Zap } from 'lucide-react'
+import {
+  ClipboardList,
+  Coffee,
+  Film,
+  Footprints,
+  Gem,
+  Gift,
+  Heart,
+  Home,
+  Mail,
+  ShoppingBag,
+  Shirt,
+  ShieldCheck,
+  Smile,
+  Sofa,
+  Sun,
+  Trophy,
+  Utensils,
+  Zap,
+} from 'lucide-react'
 
 type Player = {
   telegram_id: number
@@ -23,20 +42,17 @@ type Player = {
   }
 }
 
-type ActionResponse = {
-  message: string
-  player: Player
-}
+type ActionResponse = { message: string; player: Player }
 
-const APP_VERSION = '0.6.1-actions-debug'
-const API_URL = (
-  import.meta.env.VITE_API_URL || 'https://web-production-9b804.up.railway.app'
-).replace(/\/$/, '')
+const APP_VERSION = '0.7.0-main-ui'
+const API_URL = (import.meta.env.VITE_API_URL || 'https://web-production-9b804.up.railway.app').replace(/\/$/, '')
 
 const actions = [
-  { id: 'hug', title: 'Обнять', reward: '+8 любовь', icon: Heart },
-  { id: 'coffee', title: 'Кофе', reward: '+12 энергия', icon: Coffee },
-  { id: 'talk', title: 'Поговорить', reward: '+10 настроение', icon: Zap },
+  { id: 'coffee', title: 'Кофе', reward: '+10 энергия · +5 настроение', icon: Coffee, tone: 'coffee' },
+  { id: 'breakfast', title: 'Завтрак', reward: '+15 сытость · +5 любовь', icon: Utensils, tone: 'breakfast' },
+  { id: 'kind_words', title: 'Добрые слова', reward: '+10 любовь · +10 настроение', icon: Mail, tone: 'words' },
+  { id: 'walk', title: 'Прогулка', reward: '+15 энергия · +5 спокойствие', icon: Footprints, tone: 'walk' },
+  { id: 'movie', title: 'Фильм', reward: '+10 настроение · +5 спокойствие', icon: Film, tone: 'movie' },
 ]
 
 export default function App() {
@@ -44,41 +60,35 @@ export default function App() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [busyAction, setBusyAction] = useState<string | null>(null)
-  const [message, setMessage] = useState('Я немного сонная. Сделаешь мне кофе?')
-  const [diagnostic, setDiagnostic] = useState(`Версия ${APP_VERSION}`)
+  const [message, setMessage] = useState('Доброе утро! ☀️ Как ты спал?')
 
   useEffect(() => {
     const webApp = window.Telegram?.WebApp
     webApp?.ready()
     webApp?.expand()
-    webApp?.setHeaderColor('#0b0914')
-    webApp?.setBackgroundColor('#0b0914')
+    webApp?.setHeaderColor('#090711')
+    webApp?.setBackgroundColor('#090711')
 
     async function login() {
-      const currentInitData = webApp?.initData || ''
-      if (!currentInitData) {
+      const initData = webApp?.initData || ''
+      if (!initData) {
         setError('Открой игру через кнопку Telegram-бота.')
         setLoading(false)
         return
       }
 
       try {
-        setDiagnostic(`Вход через ${API_URL}`)
         const response = await fetch(`${API_URL}/api/v1/auth/telegram`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ init_data: currentInitData }),
+          body: JSON.stringify({ init_data: initData }),
           cache: 'no-store',
         })
-
         if (!response.ok) {
           const payload = await response.json().catch(() => null)
           throw new Error(payload?.detail || `Ошибка авторизации: ${response.status}`)
         }
-
-        const loadedPlayer: Player = await response.json()
-        setPlayer(loadedPlayer)
-        setDiagnostic(`Готово · ${APP_VERSION}`)
+        setPlayer(await response.json())
       } catch (reason) {
         setError(reason instanceof Error ? reason.message : 'Не удалось войти в игру')
       } finally {
@@ -91,44 +101,28 @@ export default function App() {
 
   async function performAction(action: string) {
     if (busyAction) return
-
-    const currentInitData = window.Telegram?.WebApp?.initData || ''
-    if (!currentInitData) {
-      setError('Telegram не передал данные авторизации. Закрой и снова открой игру.')
-      return
-    }
+    const initData = window.Telegram?.WebApp?.initData || ''
+    if (!initData) return
 
     setBusyAction(action)
     setError(null)
-    setDiagnostic(`Нажато: ${action}…`)
-    setMessage('Подожди секунду…')
-    window.Telegram?.WebApp?.HapticFeedback?.selectionChanged()
-
     try {
       const response = await fetch(`${API_URL}/api/v1/actions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ init_data: currentInitData, action }),
+        body: JSON.stringify({ init_data: initData, action }),
         cache: 'no-store',
       })
-
-      setDiagnostic(`Ответ действия: ${response.status}`)
-
       if (!response.ok) {
         const payload = await response.json().catch(() => null)
         throw new Error(payload?.detail || `Ошибка действия: ${response.status}`)
       }
-
       const result: ActionResponse = await response.json()
       setPlayer(result.player)
       setMessage(result.message)
-      setDiagnostic(`Сохранено · опыт ${result.player.experience}`)
       window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success')
     } catch (reason) {
-      const messageText = reason instanceof Error ? reason.message : 'Не удалось выполнить действие'
-      setError(messageText)
-      setMessage('Что-то не получилось. Попробуй ещё раз.')
-      setDiagnostic(`Ошибка: ${messageText}`)
+      setError(reason instanceof Error ? reason.message : 'Не удалось выполнить действие')
       window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('error')
     } finally {
       setBusyAction(null)
@@ -138,94 +132,94 @@ export default function App() {
   const stats = useMemo(() => {
     const marina = player?.marina
     return [
-      { label: 'Любовь', value: marina?.love ?? 50, icon: Heart },
-      { label: 'Настроение', value: marina?.mood ?? 80, icon: Zap },
-      { label: 'Энергия', value: marina?.energy ?? 100, icon: Coffee },
+      { label: 'Любовь', value: marina?.love ?? 50, icon: Heart, className: 'pink' },
+      { label: 'Настроение', value: marina?.mood ?? 80, icon: Smile, className: 'orange' },
+      { label: 'Энергия', value: marina?.energy ?? 100, icon: Zap, className: 'blue' },
+      { label: 'Сытость', value: marina?.hunger ?? 80, icon: Utensils, className: 'green' },
+      { label: 'Спокойствие', value: marina?.calm ?? 75, icon: ShieldCheck, className: 'purple' },
     ]
   }, [player])
 
-  if (loading) {
-    return <main className="game-shell status-screen">Загружаем день Марины…</main>
-  }
+  if (loading) return <main className="status-screen">Загружаем день Марины…</main>
+  if (error && !player) return <main className="status-screen"><h1>День Марины</h1><p>{error}</p></main>
 
-  if (!player) {
-    return (
-      <main className="game-shell status-screen">
-        <h1>День Марины</h1>
-        <p>{error || 'Не удалось загрузить игрока.'}</p>
-        <small>{diagnostic}</small>
-      </main>
-    )
-  }
-
-  const marina = player.marina
-  const playerName = player.first_name || 'Игрок'
+  const currentPlayer = player!
+  const marina = currentPlayer.marina
+  const timeLabel = marina.period === 'morning' ? '08:00' : marina.period === 'day' ? '13:00' : marina.period === 'evening' ? '19:00' : '23:00'
 
   return (
     <main className="game-shell">
-      <section className="hero-panel">
-        <header className="topbar">
-          <div>
-            <p className="eyebrow">День {marina.day} · {marina.period === 'morning' ? 'Утро' : marina.period}</p>
-            <h1>День Марины</h1>
-            <small>Привет, {playerName} · Опыт {player.experience}</small>
-          </div>
-          <div className="currency">🪙 {player.coins.toLocaleString('ru-RU')}</div>
-        </header>
-
-        <div className="stats-grid">
-          {stats.map(({ label, value, icon: Icon }) => (
-            <article className="glass-card stat" key={label}>
-              <Icon size={18} />
-              <div>
-                <span>{label}</span>
-                <div className="meter"><i style={{ width: `${Math.min(100, value)}%` }} /></div>
-              </div>
-              <strong>{value}</strong>
+      <section className="hud-panel">
+        <div className="time-card">
+          <strong>{timeLabel}</strong>
+          <span>День {marina.day}</span>
+          <small><Sun size={15} /> Доброе утро</small>
+        </div>
+        <div className="stats-row">
+          {stats.map(({ label, value, icon: Icon, className }) => (
+            <article className={`mini-stat ${className}`} key={label}>
+              <div><Icon size={18} /><span>{label}</span></div>
+              <strong>{value}/100</strong>
+              <div className="meter"><i style={{ width: `${Math.min(100, value)}%` }} /></div>
             </article>
           ))}
         </div>
+      </section>
 
-        <div className="scene">
-          <div className="ambient ambient-one" />
-          <div className="ambient ambient-two" />
-          <div className="character-placeholder">
-            <div className="portrait-glow" />
-            <span>М</span>
+      <section className="scene-panel">
+        <aside className="left-rail">
+          <div className="wallet-card">
+            <div><span className="coin-dot">◉</span><strong>{currentPlayer.coins}</strong><button type="button">+</button></div>
+            <div><Gem size={20}/><strong>{currentPlayer.crystals}</strong><button type="button">+</button></div>
           </div>
-          <div className="dialogue glass-card">
-            <p>Марина ❤️</p>
-            <span>{message}</span>
-          </div>
+          <button type="button" className="side-action"><Gift size={28}/><span>Ежедневный бонус</span></button>
+          <button type="button" className="side-action"><ClipboardList size={28}/><span>Задания</span><b>3</b></button>
+        </aside>
+
+        <div className="marina-stage">
+          <div className="window-glow" />
+          <div className="neon-note">Ты моё<br/>солнышко ♡</div>
+          <div className="character-placeholder"><span>М</span></div>
+          <div className="speech-bubble"><Heart size={18}/><strong>Марина</strong><p>{message}</p></div>
+          <div className="cat-placeholder">🐈</div>
         </div>
 
-        <div className="glass-card" style={{ padding: 10, marginTop: 12, fontSize: 12 }}>
-          {diagnostic}
-        </div>
-        {error && <div className="glass-card" style={{ padding: 12, marginTop: 10 }}>{error}</div>}
+        <aside className="wish-card">
+          <strong>Марина сегодня хочет:</strong>
+          <span>🌳 Прогулка в парке</span>
+          <span>🎞 Посмотреть фильм</span>
+          <span>☕ Кофе с тобой</span>
+        </aside>
 
-        <section className="actions">
-          {actions.map(({ id, title, reward, icon: Icon }) => (
-            <button
-              type="button"
-              className="action-card"
-              key={id}
-              disabled={busyAction !== null}
-              onClick={() => void performAction(id)}
-            >
-              <Icon size={22} />
-              <span>{busyAction === id ? 'Подожди…' : title}</span>
+        <button type="button" className="talk-button" onClick={() => void performAction('talk')} disabled={busyAction !== null}>
+          <Heart size={22}/><span>Поговорить<small>+ настроение</small></span>
+        </button>
+      </section>
+
+      <section className="action-section">
+        <h2>Что будем делать?</h2>
+        <div className="action-grid">
+          {actions.map(({ id, title, reward, icon: Icon, tone }) => (
+            <article className={`action-card ${tone}`} key={id}>
+              <div className="action-art"><Icon size={42}/></div>
+              <strong>{title}</strong>
               <small>{reward}</small>
-            </button>
+              <button type="button" disabled={busyAction !== null} onClick={() => void performAction(id)}>
+                {busyAction === id ? 'Подожди…' : 'Выбрать'}
+              </button>
+            </article>
           ))}
-        </section>
+        </div>
+        {error && <div className="error-card">{error}</div>}
+        <small className="version">{APP_VERSION} · опыт {currentPlayer.experience}</small>
       </section>
 
       <nav className="bottom-nav">
-        <button type="button" className="active"><Home size={20} /><span>Главная</span></button>
-        <button type="button"><ShoppingBag size={20} /><span>Магазин</span></button>
-        <button type="button"><Shirt size={20} /><span>Гардероб</span></button>
-        <button type="button"><Trophy size={20} /><span>Награды</span></button>
+        <button type="button" className="active"><Home size={23}/><span>Главная</span></button>
+        <button type="button"><ShoppingBag size={23}/><span>Магазин</span></button>
+        <button type="button"><Shirt size={23}/><span>Гардероб</span></button>
+        <button type="button"><Sofa size={23}/><span>Комната</span></button>
+        <button type="button"><Trophy size={23}/><span>Достижения</span></button>
       </nav>
     </main>
   )
