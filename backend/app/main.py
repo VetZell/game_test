@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -10,6 +11,11 @@ from sqlalchemy.orm import selectinload
 from .database import Base, engine, get_session
 from .models import MarinaState, User
 from .schemas import PlayerCreate, PlayerResponse
+from .telegram_auth import TelegramAuthError, validate_init_data
+
+
+class TelegramLoginRequest(BaseModel):
+    init_data: str
 
 
 @asynccontextmanager
@@ -24,7 +30,7 @@ async def lifespan(_: FastAPI):
         await engine.dispose()
 
 
-app = FastAPI(title="Day Marina API", version="0.3.0", lifespan=lifespan)
+app = FastAPI(title="Day Marina API", version="0.4.0", lifespan=lifespan)
 
 allowed_origins = [
     origin.strip()
@@ -44,9 +50,46 @@ app.add_middleware(
 )
 
 
+def player_query(telegram_id: int):
+    return (
+        select(User)
+        .options(selectinload(User.marina))
+        .where(User.telegram_id == telegram_id)
+    )
+
+
+async def get_or_create_player(
+    payload: PlayerCreate,
+    session: AsyncSession,
+) -> User:
+    query = player_query(payload.telegram_id)
+    user = await session.scalar(query)
+
+    if user is not None:
+        user.username = payload.username
+        user.first_name = payload.first_name
+        await session.commit()
+        refreshed = await session.scalar(query)
+        return refreshed or user
+
+    user = User(
+        telegram_id=payload.telegram_id,
+        username=payload.username,
+        first_name=payload.first_name,
+    )
+    user.marina = MarinaState()
+    session.add(user)
+    await session.commit()
+
+    created_user = await session.scalar(query)
+    if created_user is None:
+        raise HTTPException(status_code=500, detail="Failed to create player")
+    return created_user
+
+
 @app.get("/")
 def root() -> dict[str, str]:
-    return {"name": "Day Marina API", "status": "running", "version": "0.3.0"}
+    return {"name": "Day Marina API", "status": "running", "version": "0.4.0"}
 
 
 @app.get("/health")
@@ -64,6 +107,29 @@ async def health() -> dict[str, str]:
     return {"status": "ok", "database": database_status}
 
 
+@app.post("/api/v1/auth/telegram", response_model=PlayerResponse)
+async def telegram_login(
+    payload: TelegramLoginRequest,
+    session: AsyncSession = Depends(get_session),
+) -> User:
+    try:
+        telegram_user = validate_init_data(payload.init_data)
+    except TelegramAuthError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=str(exc),
+        ) from exc
+
+    return await get_or_create_player(
+        PlayerCreate(
+            telegram_id=telegram_user.id,
+            username=telegram_user.username,
+            first_name=telegram_user.first_name,
+        ),
+        session,
+    )
+
+
 @app.post(
     "/api/v1/players",
     response_model=PlayerResponse,
@@ -73,29 +139,7 @@ async def create_or_get_player(
     payload: PlayerCreate,
     session: AsyncSession = Depends(get_session),
 ) -> User:
-    query = (
-        select(User)
-        .options(selectinload(User.marina))
-        .where(User.telegram_id == payload.telegram_id)
-    )
-    user = await session.scalar(query)
-
-    if user is not None:
-        return user
-
-    user = User(
-        telegram_id=payload.telegram_id,
-        username=payload.username,
-        first_name=payload.first_name,
-    )
-    user.marina = MarinaState()
-    session.add(user)
-    await session.commit()
-
-    created_user = await session.scalar(query)
-    if created_user is None:
-        raise HTTPException(status_code=500, detail="Failed to create player")
-    return created_user
+    return await get_or_create_player(payload, session)
 
 
 @app.get("/api/v1/players/{telegram_id}", response_model=PlayerResponse)
@@ -103,12 +147,7 @@ async def get_player(
     telegram_id: int,
     session: AsyncSession = Depends(get_session),
 ) -> User:
-    query = (
-        select(User)
-        .options(selectinload(User.marina))
-        .where(User.telegram_id == telegram_id)
-    )
-    user = await session.scalar(query)
+    user = await session.scalar(player_query(telegram_id))
     if user is None:
         raise HTTPException(status_code=404, detail="Player not found")
     return user
