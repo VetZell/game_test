@@ -1,44 +1,36 @@
-/* Основной интерфейс игры: компактная панель, Марина по пояс и карточки как в утверждённом макете */
-.game-shell{max-width:760px;padding:6px 8px 112px}
-.hud-panel{grid-template-columns:180px 1fr;gap:0;padding:0;min-height:132px;border-radius:24px;overflow:hidden;background:rgba(8,10,18,.96);border:1px solid rgba(157,145,196,.2)}
-.time-card{padding:20px 24px;border-right:1px solid rgba(255,255,255,.1)}
-.time-card strong{font-size:38px;letter-spacing:-1px}.time-card span{font-size:15px;margin-top:10px}.time-card small{font-size:13px;margin-top:12px}
-.stats-row{grid-auto-columns:190px;gap:8px;padding:10px;overflow-x:auto}.mini-stat{padding:16px;border-radius:18px;background:linear-gradient(145deg,rgba(25,26,39,.98),rgba(13,14,23,.98));border:1px solid rgba(255,255,255,.035)}.mini-stat>div:first-child{font-size:13px}.mini-stat strong{font-size:18px;margin:14px 0 12px}.meter{height:7px}
+/* Основной мобильный интерфейс */
+.game-shell{max-width:760px;padding:6px 8px 118px}
+.hud-panel{grid-template-columns:150px 1fr;gap:0;padding:0;min-height:120px;border-radius:24px;overflow:hidden;background:rgba(8,10,18,.96);border:1px solid rgba(157,145,196,.2)}
+.time-card{padding:18px 18px;border-right:1px solid rgba(255,255,255,.1)}
+.time-card strong{font-size:34px;letter-spacing:-1px}.time-card span{font-size:14px;margin-top:9px}.time-card small{font-size:12px;margin-top:10px}
+.stats-row{grid-auto-columns:172px;gap:8px;padding:8px;overflow-x:auto}.mini-stat{padding:14px;border-radius:18px;background:linear-gradient(145deg,rgba(25,26,39,.98),rgba(13,14,23,.98));border:1px solid rgba(255,255,255,.035)}.mini-stat>div:first-child{font-size:12px}.mini-stat strong{font-size:17px;margin:12px 0 10px}.meter{height:7px}
 
-.scene-panel{min-height:760px;border-radius:28px;background:#17121b;box-shadow:0 22px 70px rgba(0,0,0,.55)}
-.left-rail{left:12px;top:18px;width:132px;gap:10px}.wallet-card{padding:12px;border-radius:20px}.wallet-card div{grid-template-columns:24px 1fr 30px;padding:8px 0}.wallet-card strong{font-size:18px}.wallet-card button{width:30px;height:30px;font-size:18px}.side-action{min-height:112px;border-radius:22px;font-size:13px;gap:10px}.side-action svg{width:34px;height:34px}.side-action b{width:28px;height:28px;font-size:13px;right:8px;top:8px}
+.scene-panel{min-height:650px;border-radius:28px;background:#17121b;box-shadow:0 22px 70px rgba(0,0,0,.55)}
+.left-rail{left:12px;top:18px;width:106px;gap:9px}.wallet-card{padding:10px;border-radius:20px}.wallet-card div{grid-template-columns:22px 1fr 28px;padding:7px 0}.wallet-card strong{font-size:16px}.wallet-card button{width:28px;height:28px;font-size:16px}.side-action{min-height:90px;border-radius:22px;font-size:11px;gap:8px}.side-action svg{width:30px;height:30px}.side-action b{width:25px;height:25px;font-size:12px;right:7px;top:7px}
 
-/* Марина по пояс в центре комнаты */
-.marina-character{left:52%;bottom:54px;width:min(64vw,390px);height:590px;align-items:flex-end}
-.marina-character img{max-width:100%;max-height:100%;object-fit:contain;object-position:center bottom;border-radius:0;filter:drop-shadow(0 24px 30px rgba(0,0,0,.55))}
-.visual-neutral img{width:100%;height:100%;max-height:none;object-fit:cover;object-position:center 26%;border-radius:0;mask-image:linear-gradient(to bottom,#000 0 92%,transparent 100%)}
-.visual-smile img,.visual-happy img,.visual-sad img,.visual-sleepy img,.visual-surprised img,.visual-thoughtful img,.visual-shy img{width:100%;height:540px;aspect-ratio:auto;object-fit:cover;object-position:center 18%;margin:0 0 20px;border-radius:28px;mask-image:linear-gradient(to bottom,#000 0 92%,transparent 100%)}
-.visual-coffee img,.visual-breakfast img,.visual-kiss img,.visual-stretch img,.visual-cat img{width:100%;height:560px;object-fit:contain;object-position:center bottom}
-.emotion-badge{bottom:10px;font-size:11px;padding:6px 12px}
+/* Марина по пояс: не растягиваем изображение и не обрезаем лицо */
+.marina-character{left:55%;bottom:54px;width:245px;height:410px;align-items:flex-end}
+.marina-character img{display:block;max-width:100%;max-height:100%;object-fit:contain;object-position:center bottom;border-radius:0;filter:drop-shadow(0 24px 30px rgba(0,0,0,.55))}
+.visual-neutral img{width:100%;height:100%;object-fit:contain;object-position:center bottom;border-radius:0;mask-image:linear-gradient(to bottom,#000 0 94%,transparent 100%)}
+.visual-smile img,.visual-happy img,.visual-sad img,.visual-sleepy img,.visual-surprised img,.visual-thoughtful img,.visual-shy img{width:235px;height:340px;aspect-ratio:auto;object-fit:contain;object-position:center bottom;margin:0 0 24px;border-radius:24px;mask-image:linear-gradient(to bottom,#000 0 94%,transparent 100%)}
+.visual-coffee img,.visual-breakfast img,.visual-kiss img,.visual-stretch img,.visual-cat img{width:245px;height:385px;object-fit:contain;object-position:center bottom}
+.emotion-badge{bottom:8px;font-size:10px;padding:5px 10px}
 
-.speech-bubble{right:12px;top:18px;width:265px;padding:18px 20px;border-radius:24px;background:rgba(8,10,18,.94)}.speech-title{color:#ff62b4;font-size:18px}.speech-bubble p{font-size:15px;line-height:1.45;margin-top:12px}
-.wish-card{left:14px;bottom:76px;width:310px;padding:18px 20px;gap:9px;border-radius:24px;background:rgba(8,10,18,.94)}.wish-card strong{font-size:16px;color:#ff69b5}.wish-card span{font-size:14px;line-height:1.35}
-.talk-button{right:14px;bottom:86px;padding:18px 22px;border-radius:24px;background:rgba(8,10,18,.94)}.talk-button svg{width:32px;height:32px;color:#ff62b4}.talk-button span{font-size:18px}.talk-button small{font-size:11px;margin-top:2px}
+.speech-bubble{right:10px;top:18px;width:220px;padding:15px 16px;border-radius:24px;background:rgba(8,10,18,.94)}.speech-title{color:#ff62b4;font-size:16px}.speech-bubble p{font-size:13px;line-height:1.42;margin-top:10px}
+.wish-card{left:12px;bottom:68px;width:238px;padding:14px 16px;gap:7px;border-radius:22px;background:rgba(8,10,18,.94)}.wish-card strong{font-size:14px;color:#ff69b5}.wish-card span{font-size:12px;line-height:1.35}
+.talk-button{right:12px;bottom:72px;padding:14px 17px;border-radius:22px;background:rgba(8,10,18,.94)}.talk-button svg{width:28px;height:28px;color:#ff62b4}.talk-button span{font-size:16px}.talk-button small{font-size:10px;margin-top:2px}
 
-.action-section{margin-top:10px;margin-bottom:92px;padding:20px 14px 16px;border-radius:28px;background:rgba(8,10,18,.97)}.action-section h2{font-size:22px;margin-bottom:18px}.action-grid{grid-auto-columns:132px;gap:12px}.action-card{padding:0;background:transparent;border:0;gap:8px;align-items:flex-start;text-align:left}.action-art{height:132px;border-radius:20px;border:1px solid rgba(255,255,255,.12)}.action-card strong{font-size:14px;min-height:auto}.action-card small{font-size:11px;min-height:auto;color:#ff6bb8}.action-card button{display:none}.action-icon{display:none}
-.bottom-nav{max-width:744px;border-radius:26px;padding:10px 8px}.bottom-nav button{font-size:11px;padding:11px 3px}.bottom-nav button svg{width:27px;height:27px}
-
-@media(max-width:600px){
-  .game-shell{padding-left:5px;padding-right:5px}.hud-panel{grid-template-columns:155px 1fr;min-height:122px}.time-card{padding:17px 18px}.time-card strong{font-size:34px}.stats-row{grid-auto-columns:175px;padding:8px}.mini-stat{padding:14px}
-  .scene-panel{min-height:700px}.left-rail{width:112px;left:10px}.side-action{min-height:96px;font-size:11px}
-  .marina-character{left:53%;bottom:52px;width:340px;height:535px}.visual-smile img,.visual-happy img,.visual-sad img,.visual-sleepy img,.visual-surprised img,.visual-thoughtful img,.visual-shy img{height:485px}.visual-coffee img,.visual-breakfast img,.visual-kiss img,.visual-stretch img,.visual-cat img{height:510px}
-  .speech-bubble{right:9px;width:235px;padding:15px 16px}.speech-title{font-size:16px}.speech-bubble p{font-size:13px}
-  .wish-card{left:10px;bottom:68px;width:260px;padding:15px 16px}.wish-card strong{font-size:14px}.wish-card span{font-size:12px}
-  .talk-button{right:10px;bottom:74px;padding:14px 16px}.talk-button span{font-size:16px}
-  .action-grid{grid-auto-columns:118px;gap:10px}.action-art{height:118px}
-}
+.action-section{margin-top:10px;margin-bottom:96px;padding:18px 12px 16px;border-radius:28px;background:rgba(8,10,18,.97)}.action-section h2{font-size:21px;margin-bottom:16px}.action-grid{grid-auto-columns:116px;gap:10px}.action-card{padding:0;background:transparent;border:0;gap:7px;align-items:flex-start;text-align:left}.action-art{height:116px;border-radius:18px;border:1px solid rgba(255,255,255,.12)}.action-card strong{font-size:13px;min-height:auto}.action-card small{font-size:10px;min-height:auto;color:#ff6bb8}.action-card button{display:none}.action-icon{display:none}
+.bottom-nav{max-width:744px;border-radius:26px;padding:9px 7px}.bottom-nav button{font-size:10px;padding:10px 3px}.bottom-nav button svg{width:25px;height:25px}
 
 @media(max-width:420px){
-  .hud-panel{grid-template-columns:140px 1fr}.time-card{padding:15px 14px}.time-card strong{font-size:31px}.stats-row{grid-auto-columns:160px}.mini-stat strong{font-size:16px}
-  .scene-panel{min-height:660px}.left-rail{width:100px}.wallet-card strong{font-size:15px}.side-action{min-height:88px}
-  .marina-character{left:54%;bottom:55px;width:300px;height:490px}.visual-smile img,.visual-happy img,.visual-sad img,.visual-sleepy img,.visual-surprised img,.visual-thoughtful img,.visual-shy img{height:440px}.visual-coffee img,.visual-breakfast img,.visual-kiss img,.visual-stretch img,.visual-cat img{height:465px}
-  .speech-bubble{width:202px}.speech-bubble p{font-size:12px}.wish-card{width:225px}.talk-button{padding:12px 14px}.talk-button small{display:none}
-  .action-grid{grid-auto-columns:108px}.action-art{height:108px}.action-card strong{font-size:12px}
+  .game-shell{padding-left:5px;padding-right:5px}.hud-panel{grid-template-columns:136px 1fr}.time-card{padding:15px 13px}.time-card strong{font-size:31px}.stats-row{grid-auto-columns:158px}.mini-stat{padding:13px}.mini-stat strong{font-size:16px}
+  .scene-panel{min-height:620px}.left-rail{width:96px}.wallet-card strong{font-size:14px}.side-action{min-height:82px;font-size:10px}
+  .marina-character{left:56%;bottom:58px;width:218px;height:370px}.visual-smile img,.visual-happy img,.visual-sad img,.visual-sleepy img,.visual-surprised img,.visual-thoughtful img,.visual-shy img{width:210px;height:305px}.visual-coffee img,.visual-breakfast img,.visual-kiss img,.visual-stretch img,.visual-cat img{width:218px;height:350px}
+  .speech-bubble{width:190px;padding:13px 14px}.speech-title{font-size:15px}.speech-bubble p{font-size:12px}
+  .wish-card{width:210px;padding:12px 14px}.wish-card strong{font-size:13px}.wish-card span{font-size:11px}
+  .talk-button{padding:12px 14px}.talk-button span{font-size:15px}.talk-button small{display:none}
+  .action-grid{grid-auto-columns:104px}.action-art{height:104px}.action-card strong{font-size:12px}
 }
 
-@media(min-width:760px){.scene-panel{min-height:820px}.marina-character{left:51%;width:430px;height:660px}.visual-smile img,.visual-happy img,.visual-sad img,.visual-sleepy img,.visual-surprised img,.visual-thoughtful img,.visual-shy img{height:610px}.visual-coffee img,.visual-breakfast img,.visual-kiss img,.visual-stretch img,.visual-cat img{height:630px}}
+@media(min-width:760px){.scene-panel{min-height:760px}.marina-character{left:53%;width:330px;height:520px}.visual-smile img,.visual-happy img,.visual-sad img,.visual-sleepy img,.visual-surprised img,.visual-thoughtful img,.visual-shy img{width:315px;height:445px}.visual-coffee img,.visual-breakfast img,.visual-kiss img,.visual-stretch img,.visual-cat img{width:330px;height:500px}}
