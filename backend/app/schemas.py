@@ -43,3 +43,15 @@ class GameActionRequest(BaseModel):
 class GameActionResponse(BaseModel):
     message: str
     player: PlayerResponse
+
+
+class MarinaChatRequest(BaseModel):
+    init_data: str
+    message: str = Field(min_length=1, max_length=500)
+
+
+class MarinaChatResponse(BaseModel):
+    reply: str
+    emotion: str
+    remembered: str | None = None
+    player: PlayerResponse
