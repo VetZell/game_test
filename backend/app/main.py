@@ -9,8 +9,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from .database import Base, engine, get_session
-from .models import MarinaState, User
-from .schemas import GameActionRequest, GameActionResponse, PlayerCreate, PlayerResponse
+from .models import MarinaMemory, MarinaState, User
+from .schemas import (
+    GameActionRequest,
+    GameActionResponse,
+    MarinaChatRequest,
+    MarinaChatResponse,
+    PlayerCreate,
+    PlayerResponse,
+)
 from .telegram_auth import TelegramAuthError, validate_init_data
 
 
@@ -28,7 +35,7 @@ async def lifespan(_: FastAPI):
         await engine.dispose()
 
 
-app = FastAPI(title="Day Marina API", version="0.6.0", lifespan=lifespan)
+app = FastAPI(title="Day Marina API", version="0.8.0", lifespan=lifespan)
 
 allowed_origins = {
     "http://localhost:5173",
@@ -90,9 +97,37 @@ def authenticate(init_data: str):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc)) from exc
 
 
+def build_marina_reply(message: str, user: User, remembered: str | None) -> tuple[str, str, dict[str, int]]:
+    value = message.lower().strip()
+    name = user.first_name or "ты"
+    changes = {"love": 0, "mood": 0, "trust": 0, "calm": 0}
+
+    if any(word in value for word in ("люблю", "любим", "солнышко", "красивая")):
+        changes.update(love=4, mood=3, trust=1)
+        return f"Я тоже тебя люблю, {name} ❤️ Мне очень тепло от твоих слов.", "love", changes
+    if any(word in value for word in ("прости", "извини", "виноват")):
+        changes.update(trust=3, calm=3, mood=1)
+        return "Спасибо, что сказал это честно. Мне важно, что мы можем спокойно всё обсудить.", "thoughtful", changes
+    if any(word in value for word in ("груст", "плохо", "устал", "тяжело")):
+        changes.update(love=2, trust=2, calm=2)
+        return "Иди ко мне. Расскажи всё как есть — я рядом и никуда не тороплюсь.", "caring", changes
+    if "кофе" in value:
+        changes.update(mood=2, love=1)
+        return "С тобой — обязательно ☕ Только давай посидим рядом и никуда не спешить.", "smile", changes
+    if any(word in value for word in ("помнишь", "вчера", "раньше")) and remembered:
+        changes.update(trust=2, mood=1)
+        return f"Помню. Ты раньше говорил: «{remembered[:120]}». Для меня это не просто слова.", "thoughtful", changes
+    if "?" in message:
+        changes.update(trust=1, mood=1)
+        return "Я думаю, нам лучше решить это вместе. Скажи, как ты сам этого хочешь?", "neutral", changes
+
+    changes.update(trust=1, mood=1)
+    return "Я тебя услышала. Мне нравится, когда ты говоришь со мной открыто. Расскажи ещё.", "smile", changes
+
+
 @app.get("/")
 def root() -> dict[str, str]:
-    return {"name": "Day Marina API", "status": "running", "version": "0.6.0"}
+    return {"name": "Day Marina API", "status": "running", "version": "0.8.0"}
 
 
 @app.get("/health")
@@ -121,6 +156,57 @@ async def telegram_login(
             first_name=telegram_user.first_name,
         ),
         session,
+    )
+
+
+@app.post("/api/v1/chat", response_model=MarinaChatResponse)
+async def chat_with_marina(
+    payload: MarinaChatRequest,
+    session: AsyncSession = Depends(get_session),
+) -> MarinaChatResponse:
+    telegram_user = authenticate(payload.init_data)
+    user = await session.scalar(player_query(telegram_user.id))
+    if user is None:
+        user = await get_or_create_player(
+            PlayerCreate(
+                telegram_id=telegram_user.id,
+                username=telegram_user.username,
+                first_name=telegram_user.first_name,
+            ),
+            session,
+        )
+
+    previous = await session.scalar(
+        select(MarinaMemory)
+        .where(MarinaMemory.user_id == user.id, MarinaMemory.role == "user")
+        .order_by(MarinaMemory.created_at.desc())
+        .limit(1)
+    )
+    remembered = previous.content if previous else None
+    reply, emotion, changes = build_marina_reply(payload.message, user, remembered)
+
+    marina = user.marina
+    marina.love = clamp(marina.love + changes["love"])
+    marina.mood = clamp(marina.mood + changes["mood"])
+    marina.trust = clamp(marina.trust + changes["trust"])
+    marina.calm = clamp(marina.calm + changes["calm"])
+    user.experience += 2
+
+    session.add_all([
+        MarinaMemory(user_id=user.id, role="user", content=payload.message, emotion="player"),
+        MarinaMemory(user_id=user.id, role="marina", content=reply, emotion=emotion),
+    ])
+    await session.commit()
+
+    refreshed = await session.scalar(player_query(telegram_user.id))
+    if refreshed is None:
+        raise HTTPException(status_code=500, detail="Не удалось сохранить разговор")
+
+    return MarinaChatResponse(
+        reply=reply,
+        emotion=emotion,
+        remembered=remembered,
+        player=PlayerResponse.model_validate(refreshed),
     )
 
 
@@ -191,6 +277,7 @@ async def perform_action(
     else:
         raise HTTPException(status_code=400, detail="Неизвестное действие")
 
+    session.add(MarinaMemory(user_id=user.id, role="event", content=messages[payload.action], emotion="event"))
     await session.commit()
     refreshed = await session.scalar(player_query(telegram_user.id))
     if refreshed is None:
@@ -219,18 +306,3 @@ async def get_player(
     if user is None:
         raise HTTPException(status_code=404, detail="Player not found")
     return user
-
-
-@app.get("/api/v1/state")
-def get_demo_state() -> dict[str, int | str]:
-    return {
-        "day": 1,
-        "period": "morning",
-        "love": 78,
-        "mood": 64,
-        "energy": 53,
-        "hunger": 72,
-        "calm": 68,
-        "coins": 1250,
-        "crystals": 25,
-    }
