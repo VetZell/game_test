@@ -1,11 +1,11 @@
 {
   "name": "day-marina-frontend",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.2.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc --noEmit && vite build",
     "start": "serve -s dist -l ${PORT:-3000}"
   },
   "dependencies": {
