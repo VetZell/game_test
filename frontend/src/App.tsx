@@ -49,7 +49,7 @@ type ActionResponse = { message: string; player: Player }
 type ChatResponse = { reply: string; emotion: string; remembered?: string | null; player: Player }
 type ChatLine = { role: 'user' | 'marina'; text: string }
 
-type MarinaVisual =
+type MarinaEmotion =
   | 'neutral'
   | 'smile'
   | 'happy'
@@ -58,34 +58,64 @@ type MarinaVisual =
   | 'surprised'
   | 'thoughtful'
   | 'shy'
-  | 'coffee'
-  | 'breakfast'
-  | 'kiss'
-  | 'stretch'
-  | 'cat'
 
-const APP_VERSION = '0.9.0-marina-emotions'
+type MarinaVisual = MarinaEmotion | 'coffee' | 'breakfast' | 'kiss' | 'stretch' | 'cat'
+
+const APP_VERSION = '1.0.0-emotion-engine'
 const API_URL = (import.meta.env.VITE_API_URL || 'https://web-production-9b804.up.railway.app').replace(/\/$/, '')
 
 const actions = [
-  { id: 'coffee', title: 'Кофе', reward: '+10 энергия · +5 настроение', icon: Coffee, tone: 'coffee', visual: 'coffee' as MarinaVisual },
-  { id: 'breakfast', title: 'Завтрак', reward: '+15 сытость · +5 любовь', icon: Utensils, tone: 'breakfast', visual: 'breakfast' as MarinaVisual },
-  { id: 'kind_words', title: 'Добрые слова', reward: '+10 любовь · +10 настроение', icon: Mail, tone: 'words', visual: 'kiss' as MarinaVisual },
-  { id: 'walk', title: 'Прогулка', reward: '+15 энергия · +5 спокойствие', icon: Footprints, tone: 'walk', visual: 'stretch' as MarinaVisual },
-  { id: 'movie', title: 'Фильм', reward: '+10 настроение · +5 спокойствие', icon: Film, tone: 'movie', visual: 'cat' as MarinaVisual },
+  { id: 'coffee', title: 'Кофе', reward: '+10 энергия · +5 настроение', icon: Coffee, tone: 'coffee', visual: 'coffee' as MarinaVisual, duration: 3600 },
+  { id: 'breakfast', title: 'Завтрак', reward: '+15 сытость · +5 любовь', icon: Utensils, tone: 'breakfast', visual: 'breakfast' as MarinaVisual, duration: 3800 },
+  { id: 'kind_words', title: 'Добрые слова', reward: '+10 любовь · +10 настроение', icon: Mail, tone: 'words', visual: 'kiss' as MarinaVisual, duration: 3200 },
+  { id: 'walk', title: 'Прогулка', reward: '+15 энергия · +5 спокойствие', icon: Footprints, tone: 'walk', visual: 'stretch' as MarinaVisual, duration: 3500 },
+  { id: 'movie', title: 'Фильм', reward: '+10 настроение · +5 спокойствие', icon: Film, tone: 'movie', visual: 'cat' as MarinaVisual, duration: 3800 },
 ]
 
-const emotionVisuals: Record<string, MarinaVisual> = {
+const emotionLabels: Record<MarinaEmotion, string> = {
+  neutral: 'Спокойная',
+  smile: 'Улыбается',
+  happy: 'Счастливая',
+  sad: 'Грустная',
+  sleepy: 'Сонная',
+  surprised: 'Удивлена',
+  thoughtful: 'Задумалась',
+  shy: 'Смущается',
+}
+
+const emotionVisuals: Record<string, MarinaEmotion> = {
   neutral: 'neutral',
   smile: 'smile',
   happy: 'happy',
   love: 'happy',
   sad: 'sad',
-  caring: 'sad',
+  caring: 'thoughtful',
   sleepy: 'sleepy',
   surprised: 'surprised',
   thoughtful: 'thoughtful',
   shy: 'shy',
+}
+
+const idleLines: Record<MarinaEmotion, string[]> = {
+  neutral: ['Мне хорошо, когда ты рядом.', 'Расскажи, как проходит твой день.', 'Давай сегодня никуда не спешить.'],
+  smile: ['Я рада тебя видеть 😊', 'У меня сегодня хорошее настроение.', 'Знаешь, рядом с тобой уютно.'],
+  happy: ['Я такая счастливая сегодня! ❤️', 'Хочется обнять тебя крепко-крепко.', 'Спасибо, что заботишься обо мне.'],
+  sad: ['Мне немного грустно… побудь со мной.', 'Можно я просто посижу рядом?', 'Мне сейчас очень нужны твои добрые слова.'],
+  sleepy: ['Я немного засыпаю… 😴', 'Кажется, мне пора немного отдохнуть.', 'Можно я положу голову тебе на плечо?'],
+  surprised: ['Ой! Я этого не ожидала 😲', 'Ты умеешь меня удивлять.', 'Вот это неожиданность!'],
+  thoughtful: ['Я кое о чём задумалась…', 'Иногда хочется просто помолчать вместе.', 'Как думаешь, что делает день по-настоящему хорошим?'],
+  shy: ['Ты меня смущаешь 😊', 'Не смотри так… я краснею.', 'Мне очень приятно это слышать.'],
+}
+
+function deriveEmotion(player: Player): MarinaEmotion {
+  const marina = player.marina
+  if (marina.period === 'night' || marina.energy <= 22) return 'sleepy'
+  if (marina.mood <= 32 || marina.love <= 25) return 'sad'
+  if (marina.romance >= 75 && marina.love >= 70) return 'shy'
+  if (marina.love >= 85 && marina.mood >= 75) return 'happy'
+  if (marina.calm <= 35 || marina.trust <= 30) return 'thoughtful'
+  if (marina.mood >= 65 || marina.love >= 65) return 'smile'
+  return 'neutral'
 }
 
 export default function App() {
@@ -97,12 +127,21 @@ export default function App() {
   const [chatOpen, setChatOpen] = useState(false)
   const [chatInput, setChatInput] = useState('')
   const [chatBusy, setChatBusy] = useState(false)
-  const [emotion, setEmotion] = useState('neutral')
+  const [emotion, setEmotion] = useState<MarinaEmotion>('neutral')
   const [activeVisual, setActiveVisual] = useState<MarinaVisual>('neutral')
-  const visualTimer = useRef<number | null>(null)
   const [chatLines, setChatLines] = useState<ChatLine[]>([
     { role: 'marina', text: 'Я здесь. Расскажи, о чём ты думаешь ❤️' },
   ])
+
+  const visualTimer = useRef<number | null>(null)
+  const emotionRef = useRef<MarinaEmotion>('neutral')
+  const actionActiveRef = useRef(false)
+
+  function applyEmotion(nextEmotion: MarinaEmotion) {
+    emotionRef.current = nextEmotion
+    setEmotion(nextEmotion)
+    if (!actionActiveRef.current) setActiveVisual(nextEmotion)
+  }
 
   useEffect(() => {
     const webApp = window.Telegram?.WebApp
@@ -130,7 +169,9 @@ export default function App() {
           const payload = await response.json().catch(() => null)
           throw new Error(payload?.detail || `Ошибка авторизации: ${response.status}`)
         }
-        setPlayer(await response.json())
+        const loggedPlayer: Player = await response.json()
+        setPlayer(loggedPlayer)
+        applyEmotion(deriveEmotion(loggedPlayer))
       } catch (reason) {
         setError(reason instanceof Error ? reason.message : 'Не удалось войти в игру')
       } finally {
@@ -145,21 +186,41 @@ export default function App() {
     }
   }, [])
 
-  function showVisual(visual: MarinaVisual, duration = 3200) {
+  useEffect(() => {
+    if (!player || busyAction || chatOpen || chatBusy) return
+
+    const timer = window.setInterval(() => {
+      if (actionActiveRef.current) return
+      const lines = idleLines[emotionRef.current]
+      const nextLine = lines[Math.floor(Math.random() * lines.length)]
+      setMessage(nextLine)
+
+      if (Math.random() > 0.72) {
+        const temporary: MarinaEmotion = emotionRef.current === 'neutral' ? 'smile' : emotionRef.current
+        setActiveVisual(temporary)
+      }
+    }, 45000)
+
+    return () => window.clearInterval(timer)
+  }, [player, busyAction, chatOpen, chatBusy])
+
+  function showVisual(visual: MarinaVisual, duration: number) {
     if (visualTimer.current !== null) window.clearTimeout(visualTimer.current)
+    actionActiveRef.current = true
     setActiveVisual(visual)
     visualTimer.current = window.setTimeout(() => {
-      setActiveVisual(emotionVisuals[emotion] || 'neutral')
+      actionActiveRef.current = false
+      setActiveVisual(emotionRef.current)
       visualTimer.current = null
     }, duration)
   }
 
-  async function performAction(action: string, visual: MarinaVisual) {
+  async function performAction(action: string, visual: MarinaVisual, duration: number) {
     if (busyAction) return
     const initData = window.Telegram?.WebApp?.initData || ''
     if (!initData) return
 
-    showVisual(visual)
+    showVisual(visual, duration)
     setBusyAction(action)
     setError(null)
     try {
@@ -176,6 +237,7 @@ export default function App() {
       const result: ActionResponse = await response.json()
       setPlayer(result.player)
       setMessage(result.message)
+      applyEmotion(deriveEmotion(result.player))
       window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success')
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Не удалось выполнить действие')
@@ -208,10 +270,9 @@ export default function App() {
         throw new Error(payload?.detail || `Ошибка разговора: ${response.status}`)
       }
       const result: ChatResponse = await response.json()
-      const nextVisual = emotionVisuals[result.emotion] || 'neutral'
+      const nextEmotion = emotionVisuals[result.emotion] || deriveEmotion(result.player)
       setPlayer(result.player)
-      setEmotion(result.emotion)
-      setActiveVisual(nextVisual)
+      applyEmotion(nextEmotion)
       setMessage(result.reply)
       setChatLines((lines) => [...lines, { role: 'marina', text: result.reply }])
       window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success')
@@ -241,6 +302,7 @@ export default function App() {
   const currentPlayer = player!
   const marina = currentPlayer.marina
   const timeLabel = marina.period === 'morning' ? '08:00' : marina.period === 'day' ? '13:00' : marina.period === 'evening' ? '19:00' : '23:00'
+  const periodLabel = marina.period === 'morning' ? 'Доброе утро' : marina.period === 'day' ? 'Добрый день' : marina.period === 'evening' ? 'Добрый вечер' : 'Спокойной ночи'
   const marinaImage = `/marina/${activeVisual}.webp`
 
   return (
@@ -249,7 +311,7 @@ export default function App() {
         <div className="time-card">
           <strong>{timeLabel}</strong>
           <span>День {marina.day}</span>
-          <small><Sun size={15} /> Доброе утро</small>
+          <small><Sun size={15} /> {periodLabel}</small>
         </div>
         <div className="stats-row">
           {stats.map(({ label, value, icon: Icon, className }) => (
@@ -277,7 +339,8 @@ export default function App() {
           <div className="neon-note">Ты моё<br/>солнышко ♡</div>
           <div className={`marina-character visual-${activeVisual}`}>
             <div className="marina-aura" />
-            <img src={marinaImage} alt={`Марина: ${activeVisual}`} draggable={false} />
+            <img src={marinaImage} alt={`Марина: ${emotionLabels[emotion]}`} draggable={false} />
+            <span className="emotion-badge">{emotionLabels[emotion]}</span>
           </div>
           <div className="speech-bubble"><Heart size={18}/><strong>Марина</strong><p>{message}</p></div>
         </div>
@@ -297,7 +360,7 @@ export default function App() {
       <section className="action-section">
         <h2>Что будем делать?</h2>
         <div className="action-grid">
-          {actions.map(({ id, title, reward, icon: Icon, tone, visual }) => (
+          {actions.map(({ id, title, reward, icon: Icon, tone, visual, duration }) => (
             <article className={`action-card ${tone}`} key={id}>
               <div className="action-art">
                 <img src={`/marina/${visual}.webp`} alt={title} loading="lazy" />
@@ -305,8 +368,8 @@ export default function App() {
               </div>
               <strong>{title}</strong>
               <small>{reward}</small>
-              <button type="button" disabled={busyAction !== null} onClick={() => void performAction(id, visual)}>
-                {busyAction === id ? 'Подожди…' : 'Выбрать'}
+              <button type="button" disabled={busyAction !== null} onClick={() => void performAction(id, visual, duration)}>
+                {busyAction === id ? 'Марина занята…' : 'Выбрать'}
               </button>
             </article>
           ))}
@@ -327,7 +390,7 @@ export default function App() {
         <div className="chat-overlay" role="dialog" aria-modal="true">
           <section className="chat-panel">
             <header>
-              <div><Heart size={20}/><span><strong>Марина</strong><small>помнит ваши разговоры</small></span></div>
+              <div><Heart size={20}/><span><strong>Марина</strong><small>{emotionLabels[emotion]} · помнит разговоры</small></span></div>
               <button type="button" onClick={() => setChatOpen(false)}><X size={22}/></button>
             </header>
             <div className="chat-history">
