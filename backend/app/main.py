@@ -30,22 +30,25 @@ async def lifespan(_: FastAPI):
         await engine.dispose()
 
 
-app = FastAPI(title="Day Marina API", version="0.4.0", lifespan=lifespan)
+app = FastAPI(title="Day Marina API", version="0.4.1", lifespan=lifespan)
 
-allowed_origins = [
-    origin.strip()
-    for origin in os.getenv(
-        "CORS_ORIGINS",
-        "http://localhost:5173,http://127.0.0.1:5173",
-    ).split(",")
+allowed_origins = {
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "https://gametest-production-9fef.up.railway.app",
+}
+allowed_origins.update(
+    origin.strip().rstrip("/")
+    for origin in os.getenv("CORS_ORIGINS", "").split(",")
     if origin.strip()
-]
+)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
-    allow_credentials=True,
-    allow_methods=["*"],
+    allow_origins=sorted(allowed_origins),
+    allow_origin_regex=r"https://.*\.up\.railway\.app",
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -89,7 +92,7 @@ async def get_or_create_player(
 
 @app.get("/")
 def root() -> dict[str, str]:
-    return {"name": "Day Marina API", "status": "running", "version": "0.4.0"}
+    return {"name": "Day Marina API", "status": "running", "version": "0.4.1"}
 
 
 @app.get("/health")
