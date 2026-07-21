@@ -1,40 +1,30 @@
 import os
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
+from sqlalchemy import select, text
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
-
-def build_database_url() -> str | None:
-    database_url = os.getenv("DATABASE_URL")
-    if not database_url:
-        return None
-
-    if database_url.startswith("postgres://"):
-        database_url = database_url.replace("postgres://", "postgresql+asyncpg://", 1)
-    elif database_url.startswith("postgresql://"):
-        database_url = database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
-
-    return database_url
-
-
-DATABASE_URL = build_database_url()
-engine: AsyncEngine | None = (
-    create_async_engine(DATABASE_URL, pool_pre_ping=True) if DATABASE_URL else None
-)
+from .database import Base, engine, get_session
+from .models import MarinaState, User
+from .schemas import PlayerCreate, PlayerResponse
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    if engine is not None:
+        async with engine.begin() as connection:
+            await connection.run_sync(Base.metadata.create_all)
+
     yield
+
     if engine is not None:
         await engine.dispose()
 
 
-app = FastAPI(title="Day Marina API", version="0.2.0", lifespan=lifespan)
+app = FastAPI(title="Day Marina API", version="0.3.0", lifespan=lifespan)
 
 allowed_origins = [
     origin.strip()
@@ -54,21 +44,9 @@ app.add_middleware(
 )
 
 
-class PlayerState(BaseModel):
-    day: int = 1
-    period: str = "morning"
-    love: int = 78
-    mood: int = 64
-    energy: int = 53
-    hunger: int = 72
-    calm: int = 68
-    coins: int = 1250
-    crystals: int = 25
-
-
 @app.get("/")
 def root() -> dict[str, str]:
-    return {"name": "Day Marina API", "status": "running"}
+    return {"name": "Day Marina API", "status": "running", "version": "0.3.0"}
 
 
 @app.get("/health")
@@ -86,6 +64,66 @@ async def health() -> dict[str, str]:
     return {"status": "ok", "database": database_status}
 
 
-@app.get("/api/v1/state", response_model=PlayerState)
-def get_state() -> PlayerState:
-    return PlayerState()
+@app.post(
+    "/api/v1/players",
+    response_model=PlayerResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_or_get_player(
+    payload: PlayerCreate,
+    session: AsyncSession = Depends(get_session),
+) -> User:
+    query = (
+        select(User)
+        .options(selectinload(User.marina))
+        .where(User.telegram_id == payload.telegram_id)
+    )
+    user = await session.scalar(query)
+
+    if user is not None:
+        return user
+
+    user = User(
+        telegram_id=payload.telegram_id,
+        username=payload.username,
+        first_name=payload.first_name,
+    )
+    user.marina = MarinaState()
+    session.add(user)
+    await session.commit()
+
+    created_user = await session.scalar(query)
+    if created_user is None:
+        raise HTTPException(status_code=500, detail="Failed to create player")
+    return created_user
+
+
+@app.get("/api/v1/players/{telegram_id}", response_model=PlayerResponse)
+async def get_player(
+    telegram_id: int,
+    session: AsyncSession = Depends(get_session),
+) -> User:
+    query = (
+        select(User)
+        .options(selectinload(User.marina))
+        .where(User.telegram_id == telegram_id)
+    )
+    user = await session.scalar(query)
+    if user is None:
+        raise HTTPException(status_code=404, detail="Player not found")
+    return user
+
+
+@app.get("/api/v1/state")
+def get_demo_state() -> dict[str, int | str]:
+    return {
+        "day": 1,
+        "period": "morning",
+        "love": 78,
+        "mood": 64,
+        "energy": 53,
+        "hunger": 72,
+        "calm": 68,
+        "coins": 1250,
+        "crystals": 25,
+    }
