@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { FormEvent, useEffect, useMemo, useState } from 'react'
 import {
   ClipboardList,
   Coffee,
@@ -9,6 +9,8 @@ import {
   Heart,
   Home,
   Mail,
+  MessageCircle,
+  Send,
   ShoppingBag,
   Shirt,
   ShieldCheck,
@@ -17,6 +19,7 @@ import {
   Sun,
   Trophy,
   Utensils,
+  X,
   Zap,
 } from 'lucide-react'
 
@@ -43,8 +46,10 @@ type Player = {
 }
 
 type ActionResponse = { message: string; player: Player }
+type ChatResponse = { reply: string; emotion: string; remembered?: string | null; player: Player }
+type ChatLine = { role: 'user' | 'marina'; text: string }
 
-const APP_VERSION = '0.7.0-main-ui'
+const APP_VERSION = '0.8.0-memory-chat'
 const API_URL = (import.meta.env.VITE_API_URL || 'https://web-production-9b804.up.railway.app').replace(/\/$/, '')
 
 const actions = [
@@ -61,6 +66,13 @@ export default function App() {
   const [loading, setLoading] = useState(true)
   const [busyAction, setBusyAction] = useState<string | null>(null)
   const [message, setMessage] = useState('Доброе утро! ☀️ Как ты спал?')
+  const [chatOpen, setChatOpen] = useState(false)
+  const [chatInput, setChatInput] = useState('')
+  const [chatBusy, setChatBusy] = useState(false)
+  const [emotion, setEmotion] = useState('neutral')
+  const [chatLines, setChatLines] = useState<ChatLine[]>([
+    { role: 'marina', text: 'Я здесь. Расскажи, о чём ты думаешь ❤️' },
+  ])
 
   useEffect(() => {
     const webApp = window.Telegram?.WebApp
@@ -129,6 +141,43 @@ export default function App() {
     }
   }
 
+  async function sendChat(event: FormEvent) {
+    event.preventDefault()
+    const text = chatInput.trim()
+    const initData = window.Telegram?.WebApp?.initData || ''
+    if (!text || !initData || chatBusy) return
+
+    setChatLines((lines) => [...lines, { role: 'user', text }])
+    setChatInput('')
+    setChatBusy(true)
+    setError(null)
+
+    try {
+      const response = await fetch(`${API_URL}/api/v1/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ init_data: initData, message: text }),
+        cache: 'no-store',
+      })
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null)
+        throw new Error(payload?.detail || `Ошибка разговора: ${response.status}`)
+      }
+      const result: ChatResponse = await response.json()
+      setPlayer(result.player)
+      setEmotion(result.emotion)
+      setMessage(result.reply)
+      setChatLines((lines) => [...lines, { role: 'marina', text: result.reply }])
+      window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success')
+    } catch (reason) {
+      const textError = reason instanceof Error ? reason.message : 'Марина сейчас не смогла ответить'
+      setError(textError)
+      setChatLines((lines) => [...lines, { role: 'marina', text: 'Что-то не получилось. Давай попробуем ещё раз.' }])
+    } finally {
+      setChatBusy(false)
+    }
+  }
+
   const stats = useMemo(() => {
     const marina = player?.marina
     return [
@@ -166,7 +215,7 @@ export default function App() {
         </div>
       </section>
 
-      <section className="scene-panel">
+      <section className={`scene-panel emotion-${emotion}`}>
         <aside className="left-rail">
           <div className="wallet-card">
             <div><span className="coin-dot">◉</span><strong>{currentPlayer.coins}</strong><button type="button">+</button></div>
@@ -191,8 +240,8 @@ export default function App() {
           <span>☕ Кофе с тобой</span>
         </aside>
 
-        <button type="button" className="talk-button" onClick={() => void performAction('talk')} disabled={busyAction !== null}>
-          <Heart size={22}/><span>Поговорить<small>+ настроение</small></span>
+        <button type="button" className="talk-button" onClick={() => setChatOpen(true)}>
+          <MessageCircle size={22}/><span>Поговорить<small>ИИ-память</small></span>
         </button>
       </section>
 
@@ -221,6 +270,32 @@ export default function App() {
         <button type="button"><Sofa size={23}/><span>Комната</span></button>
         <button type="button"><Trophy size={23}/><span>Достижения</span></button>
       </nav>
+
+      {chatOpen && (
+        <div className="chat-overlay" role="dialog" aria-modal="true">
+          <section className="chat-panel">
+            <header>
+              <div><Heart size={20}/><span><strong>Марина</strong><small>помнит ваши разговоры</small></span></div>
+              <button type="button" onClick={() => setChatOpen(false)}><X size={22}/></button>
+            </header>
+            <div className="chat-history">
+              {chatLines.map((line, index) => (
+                <div className={`chat-line ${line.role}`} key={`${line.role}-${index}`}>{line.text}</div>
+              ))}
+              {chatBusy && <div className="chat-line marina typing">Марина печатает…</div>}
+            </div>
+            <form className="chat-form" onSubmit={sendChat}>
+              <input
+                value={chatInput}
+                onChange={(event) => setChatInput(event.target.value)}
+                placeholder="Напиши Марине…"
+                maxLength={500}
+              />
+              <button type="submit" disabled={chatBusy || !chatInput.trim()}><Send size={20}/></button>
+            </form>
+          </section>
+        </div>
+      )}
     </main>
   )
 }
