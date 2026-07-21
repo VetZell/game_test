@@ -20,7 +20,9 @@ type Player = {
   }
 }
 
-const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '')
+const API_URL = (
+  import.meta.env.VITE_API_URL || 'https://web-production-9b804.up.railway.app'
+).replace(/\/$/, '')
 
 const actions = [
   { title: 'Обнять', reward: '+8 любовь', icon: Heart },
