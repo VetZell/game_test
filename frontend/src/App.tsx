@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react'
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ClipboardList,
   Coffee,
@@ -49,16 +49,44 @@ type ActionResponse = { message: string; player: Player }
 type ChatResponse = { reply: string; emotion: string; remembered?: string | null; player: Player }
 type ChatLine = { role: 'user' | 'marina'; text: string }
 
-const APP_VERSION = '0.8.0-memory-chat'
+type MarinaVisual =
+  | 'neutral'
+  | 'smile'
+  | 'happy'
+  | 'sad'
+  | 'sleepy'
+  | 'surprised'
+  | 'thoughtful'
+  | 'shy'
+  | 'coffee'
+  | 'breakfast'
+  | 'kiss'
+  | 'stretch'
+  | 'cat'
+
+const APP_VERSION = '0.9.0-marina-emotions'
 const API_URL = (import.meta.env.VITE_API_URL || 'https://web-production-9b804.up.railway.app').replace(/\/$/, '')
 
 const actions = [
-  { id: 'coffee', title: 'Кофе', reward: '+10 энергия · +5 настроение', icon: Coffee, tone: 'coffee' },
-  { id: 'breakfast', title: 'Завтрак', reward: '+15 сытость · +5 любовь', icon: Utensils, tone: 'breakfast' },
-  { id: 'kind_words', title: 'Добрые слова', reward: '+10 любовь · +10 настроение', icon: Mail, tone: 'words' },
-  { id: 'walk', title: 'Прогулка', reward: '+15 энергия · +5 спокойствие', icon: Footprints, tone: 'walk' },
-  { id: 'movie', title: 'Фильм', reward: '+10 настроение · +5 спокойствие', icon: Film, tone: 'movie' },
+  { id: 'coffee', title: 'Кофе', reward: '+10 энергия · +5 настроение', icon: Coffee, tone: 'coffee', visual: 'coffee' as MarinaVisual },
+  { id: 'breakfast', title: 'Завтрак', reward: '+15 сытость · +5 любовь', icon: Utensils, tone: 'breakfast', visual: 'breakfast' as MarinaVisual },
+  { id: 'kind_words', title: 'Добрые слова', reward: '+10 любовь · +10 настроение', icon: Mail, tone: 'words', visual: 'kiss' as MarinaVisual },
+  { id: 'walk', title: 'Прогулка', reward: '+15 энергия · +5 спокойствие', icon: Footprints, tone: 'walk', visual: 'stretch' as MarinaVisual },
+  { id: 'movie', title: 'Фильм', reward: '+10 настроение · +5 спокойствие', icon: Film, tone: 'movie', visual: 'cat' as MarinaVisual },
 ]
+
+const emotionVisuals: Record<string, MarinaVisual> = {
+  neutral: 'neutral',
+  smile: 'smile',
+  happy: 'happy',
+  love: 'happy',
+  sad: 'sad',
+  caring: 'sad',
+  sleepy: 'sleepy',
+  surprised: 'surprised',
+  thoughtful: 'thoughtful',
+  shy: 'shy',
+}
 
 export default function App() {
   const [player, setPlayer] = useState<Player | null>(null)
@@ -70,6 +98,8 @@ export default function App() {
   const [chatInput, setChatInput] = useState('')
   const [chatBusy, setChatBusy] = useState(false)
   const [emotion, setEmotion] = useState('neutral')
+  const [activeVisual, setActiveVisual] = useState<MarinaVisual>('neutral')
+  const visualTimer = useRef<number | null>(null)
   const [chatLines, setChatLines] = useState<ChatLine[]>([
     { role: 'marina', text: 'Я здесь. Расскажи, о чём ты думаешь ❤️' },
   ])
@@ -109,13 +139,27 @@ export default function App() {
     }
 
     void login()
+
+    return () => {
+      if (visualTimer.current !== null) window.clearTimeout(visualTimer.current)
+    }
   }, [])
 
-  async function performAction(action: string) {
+  function showVisual(visual: MarinaVisual, duration = 3200) {
+    if (visualTimer.current !== null) window.clearTimeout(visualTimer.current)
+    setActiveVisual(visual)
+    visualTimer.current = window.setTimeout(() => {
+      setActiveVisual(emotionVisuals[emotion] || 'neutral')
+      visualTimer.current = null
+    }, duration)
+  }
+
+  async function performAction(action: string, visual: MarinaVisual) {
     if (busyAction) return
     const initData = window.Telegram?.WebApp?.initData || ''
     if (!initData) return
 
+    showVisual(visual)
     setBusyAction(action)
     setError(null)
     try {
@@ -164,8 +208,10 @@ export default function App() {
         throw new Error(payload?.detail || `Ошибка разговора: ${response.status}`)
       }
       const result: ChatResponse = await response.json()
+      const nextVisual = emotionVisuals[result.emotion] || 'neutral'
       setPlayer(result.player)
       setEmotion(result.emotion)
+      setActiveVisual(nextVisual)
       setMessage(result.reply)
       setChatLines((lines) => [...lines, { role: 'marina', text: result.reply }])
       window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success')
@@ -195,6 +241,7 @@ export default function App() {
   const currentPlayer = player!
   const marina = currentPlayer.marina
   const timeLabel = marina.period === 'morning' ? '08:00' : marina.period === 'day' ? '13:00' : marina.period === 'evening' ? '19:00' : '23:00'
+  const marinaImage = `/marina/${activeVisual}.webp`
 
   return (
     <main className="game-shell">
@@ -228,9 +275,11 @@ export default function App() {
         <div className="marina-stage">
           <div className="window-glow" />
           <div className="neon-note">Ты моё<br/>солнышко ♡</div>
-          <div className="character-placeholder"><span>М</span></div>
+          <div className={`marina-character visual-${activeVisual}`}>
+            <div className="marina-aura" />
+            <img src={marinaImage} alt={`Марина: ${activeVisual}`} draggable={false} />
+          </div>
           <div className="speech-bubble"><Heart size={18}/><strong>Марина</strong><p>{message}</p></div>
-          <div className="cat-placeholder">🐈</div>
         </div>
 
         <aside className="wish-card">
@@ -248,12 +297,15 @@ export default function App() {
       <section className="action-section">
         <h2>Что будем делать?</h2>
         <div className="action-grid">
-          {actions.map(({ id, title, reward, icon: Icon, tone }) => (
+          {actions.map(({ id, title, reward, icon: Icon, tone, visual }) => (
             <article className={`action-card ${tone}`} key={id}>
-              <div className="action-art"><Icon size={42}/></div>
+              <div className="action-art">
+                <img src={`/marina/${visual}.webp`} alt={title} loading="lazy" />
+                <span className="action-icon"><Icon size={22}/></span>
+              </div>
               <strong>{title}</strong>
               <small>{reward}</small>
-              <button type="button" disabled={busyAction !== null} onClick={() => void performAction(id)}>
+              <button type="button" disabled={busyAction !== null} onClick={() => void performAction(id, visual)}>
                 {busyAction === id ? 'Подожди…' : 'Выбрать'}
               </button>
             </article>
