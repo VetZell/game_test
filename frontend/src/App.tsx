@@ -17,7 +17,15 @@ type Player = {
     energy: number
     hunger: number
     calm: number
+    trust: number
+    attachment: number
+    romance: number
   }
+}
+
+type ActionResponse = {
+  message: string
+  player: Player
 }
 
 const API_URL = (
@@ -25,15 +33,18 @@ const API_URL = (
 ).replace(/\/$/, '')
 
 const actions = [
-  { title: 'Обнять', reward: '+8 любовь', icon: Heart },
-  { title: 'Кофе', reward: '+12 энергия', icon: Coffee },
-  { title: 'Поговорить', reward: '+10 настроение', icon: Zap },
+  { id: 'hug', title: 'Обнять', reward: '+8 любовь', icon: Heart },
+  { id: 'coffee', title: 'Кофе', reward: '+12 энергия', icon: Coffee },
+  { id: 'talk', title: 'Поговорить', reward: '+10 настроение', icon: Zap },
 ]
 
 export default function App() {
   const [player, setPlayer] = useState<Player | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [busyAction, setBusyAction] = useState<string | null>(null)
+  const [message, setMessage] = useState('Я немного сонная. Сделаешь мне кофе?')
+  const [initData, setInitData] = useState('')
 
   useEffect(() => {
     const webApp = window.Telegram?.WebApp
@@ -48,6 +59,8 @@ export default function App() {
         setLoading(false)
         return
       }
+
+      setInitData(webApp.initData)
 
       try {
         const response = await fetch(`${API_URL}/api/v1/auth/telegram`, {
@@ -72,6 +85,36 @@ export default function App() {
     void login()
   }, [])
 
+  async function performAction(action: string) {
+    if (!initData || busyAction) return
+
+    setBusyAction(action)
+    setError(null)
+
+    try {
+      const response = await fetch(`${API_URL}/api/v1/actions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ init_data: initData, action }),
+      })
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null)
+        throw new Error(payload?.detail || `Ошибка действия: ${response.status}`)
+      }
+
+      const result: ActionResponse = await response.json()
+      setPlayer(result.player)
+      setMessage(result.message)
+      window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('light')
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Не удалось выполнить действие')
+      window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('error')
+    } finally {
+      setBusyAction(null)
+    }
+  }
+
   const stats = useMemo(() => {
     const marina = player?.marina
     return [
@@ -85,7 +128,7 @@ export default function App() {
     return <main className="game-shell status-screen">Загружаем день Марины…</main>
   }
 
-  if (error) {
+  if (error && !player) {
     return (
       <main className="game-shell status-screen">
         <h1>День Марины</h1>
@@ -104,7 +147,7 @@ export default function App() {
           <div>
             <p className="eyebrow">День {marina.day} · {marina.period === 'morning' ? 'Утро' : marina.period}</p>
             <h1>День Марины</h1>
-            <small>Привет, {playerName}</small>
+            <small>Привет, {playerName} · Опыт {player!.experience}</small>
           </div>
           <div className="currency">🪙 {player!.coins.toLocaleString('ru-RU')}</div>
         </header>
@@ -130,16 +173,23 @@ export default function App() {
             <span>М</span>
           </div>
           <div className="dialogue glass-card">
-            <p>Доброе утро ❤️</p>
-            <span>Я немного сонная. Сделаешь мне кофе?</span>
+            <p>Марина ❤️</p>
+            <span>{message}</span>
           </div>
         </div>
 
+        {error && <div className="glass-card" style={{ padding: 12, marginBottom: 12 }}>{error}</div>}
+
         <section className="actions">
-          {actions.map(({ title, reward, icon: Icon }) => (
-            <button className="action-card" key={title}>
+          {actions.map(({ id, title, reward, icon: Icon }) => (
+            <button
+              className="action-card"
+              key={id}
+              disabled={busyAction !== null}
+              onClick={() => void performAction(id)}
+            >
               <Icon size={22} />
-              <span>{title}</span>
+              <span>{busyAction === id ? 'Подожди…' : title}</span>
               <small>{reward}</small>
             </button>
           ))}
