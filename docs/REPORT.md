@@ -61,4 +61,5 @@ SUCCESS
 YES.
 
 ## Commit / PR
-- Pending final validation, commit, push and PR creation.
+- Implementation commit: `34a264bf7d9cd0bfd3c8677cf0f64fdb4cc01a6e`.
+- PR: #6 — https://github.com/VetZell/game_test/pull/6
