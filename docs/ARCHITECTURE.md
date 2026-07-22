@@ -9,6 +9,7 @@
   - `frontend/src/App.tsx` contains the current single-page game shell, Telegram WebApp initialization, API calls, local UI state, Marina visuals, action buttons, and chat overlay.
   - `frontend/src/mutationPayload.ts` builds chat/action mutation payloads with per-request `idempotency_key` values.
   - `frontend/src/mutationPayload.test.ts` covers idempotency key generation and mutation payload behavior with Vitest in Node mode.
+  - `frontend/src/App.integration.test.tsx` covers Telegram-auth, chat, action, pending-action and chat-error flows with mocked Telegram WebApp and fetch in Vitest/jsdom.
   - `frontend/src/telegram.d.ts` declares the Telegram WebApp browser API used by the app.
   - `frontend/public/marina/` and `frontend/public/marina/v2/` contain Marina image assets and manifests.
   - `frontend/Dockerfile`, `frontend/railway.json`, and `frontend/serve.json` describe the static frontend deployment.
@@ -91,12 +92,12 @@
 - Backend tests are run with `cd backend && pytest -q`.
 - Backend compile/import checks use `python -m compileall .` and FastAPI import checks.
 - Alembic graph checks use `cd backend && alembic heads` and `cd backend && alembic history --verbose`.
-- Frontend unit tests use `cd frontend && npm test -- --run`; production build uses `cd frontend && npm run build`.
+- Frontend unit and integration tests use `cd frontend && npm test -- --run`; production build uses `cd frontend && npm run build`.
 
 ## Current boundaries and known limitations
 - Documentation changes in TASK-004 do not change runtime behavior, API contracts, UI, game balance, or database schema.
 - Backend gameplay/economy logic for chat/actions is concentrated in `backend/app/game_services.py`.
-- Frontend sends idempotency keys with chat/action mutation payloads.
+- Frontend sends idempotency keys with chat/action mutation payloads, and React-level Vitest/jsdom integration tests cover critical mocked auth, chat and action flows.
 - The former unauthenticated player helper endpoints `POST /api/v1/players` and `GET /api/v1/players/{telegram_id}` are removed; player creation/loading happens through Telegram-authenticated flows only.
 - Deployment does not automatically run Alembic migrations; operators must run/verify `./scripts/migrate.sh` separately before API rollout and `/health` verification.
 - PostgreSQL migration rollout needs staging/production-like validation.

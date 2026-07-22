@@ -10,7 +10,7 @@
 - Entry point: `frontend/src/main.tsx`; current app shell and gameplay UI live primarily in `frontend/src/App.tsx`.
 - The frontend initializes Telegram WebApp APIs, reads `initData`, authenticates through the backend, renders Marina visuals from `frontend/public/marina/` assets, and calls backend chat/action endpoints.
 - API base URL comes from `VITE_API_URL`; when absent, code falls back to the current Railway backend URL.
-- Chat/action frontend requests include backend-compatible `idempotency_key` values generated per intentional user mutation; this helper behavior is covered by lightweight Vitest unit tests.
+- Chat/action frontend requests include backend-compatible `idempotency_key` values generated per intentional user mutation; helper behavior is covered by Vitest unit tests and critical Telegram auth/chat/action React flows are covered by Vitest/jsdom integration tests with mocked Telegram WebApp and fetch.
 
 ## Backend
 - FastAPI + async SQLAlchemy + PostgreSQL.
