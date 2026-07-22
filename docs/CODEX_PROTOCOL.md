@@ -12,9 +12,10 @@
 Перед каждой задачей Codex обязан прочитать:
 1. `AGENTS.md`
 2. `docs/CODEX_PROTOCOL.md`
-3. `docs/PROJECT_STATE.md`
-4. `docs/TECH_DEBT.md`
-5. `docs/TASK.md`
+3. `docs/AI_CONTEXT.md`
+4. `docs/PROJECT_STATE.md`
+5. `docs/TECH_DEBT.md`
+6. `docs/TASK.md`
 
 ## Task execution rules
 1. Выполнять задачу только когда в `docs/TASK.md` указано `Status: READY`.
