@@ -145,17 +145,9 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    if _table_exists("idempotency_records"):
-        if "ix_idempotency_records_user_id" in _indexes("idempotency_records"):
-            op.drop_index(op.f("ix_idempotency_records_user_id"), table_name="idempotency_records")
-        op.drop_table("idempotency_records")
-    if _table_exists("marina_memories"):
-        if "ix_marina_memories_user_id" in _indexes("marina_memories"):
-            op.drop_index(op.f("ix_marina_memories_user_id"), table_name="marina_memories")
-        op.drop_table("marina_memories")
-    if _table_exists("marina_states"):
-        op.drop_table("marina_states")
-    if _table_exists("users"):
-        if "ix_users_telegram_id" in _indexes("users"):
-            op.drop_index(op.f("ix_users_telegram_id"), table_name="users")
-        op.drop_table("users")
+    raise RuntimeError(
+        "Baseline revision 20260722_0001 is irreversible. "
+        "It may have adopted pre-Alembic production tables created by runtime create_all(), "
+        "so automated downgrade is disabled to prevent data loss. "
+        "Restore from backup or apply a purpose-built manual migration if rollback is required."
+    )

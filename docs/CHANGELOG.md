@@ -18,3 +18,8 @@
 - Made the baseline Alembic migration safe for empty databases and existing schemas created by prior runtime `create_all()`.
 - Added tests for CORS defaults, idempotency payload conflicts, and existing-schema Alembic upgrade behavior.
 - Documented Alembic bootstrap and verification steps for existing deployments.
+
+## TASK-003 — Alembic baseline downgrade safety
+- Made baseline migration `20260722_0001` irreversible to prevent destructive downgrade of adopted pre-Alembic tables.
+- Added an automated test proving `alembic downgrade base` fails without deleting legacy `users`, `marina_states`, `marina_memories`, or user data.
+- Documented the baseline downgrade policy and rollback guidance.

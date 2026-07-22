@@ -33,3 +33,8 @@ Before production rollout:
 5. Confirm application startup no longer creates schema implicitly.
 
 If the production schema has drifted from the SQLAlchemy models, stop and reconcile the schema before running migrations.
+
+## Downgrade policy
+The baseline revision `20260722_0001` is intentionally irreversible. It can adopt tables that existed before Alembic was introduced, so `alembic downgrade base` raises a clear error instead of dropping `users`, `marina_states`, `marina_memories`, or user data.
+
+If rollback is required, restore from a verified backup or write a purpose-built manual migration for the specific deployment state. Do not use baseline downgrade as a production rollback mechanism.

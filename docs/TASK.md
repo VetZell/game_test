@@ -4,7 +4,7 @@
 TASK-003
 
 ## Status
-READY
+DONE
 
 ## Priority
 High
