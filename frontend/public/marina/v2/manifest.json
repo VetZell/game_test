@@ -1,0 +1,30 @@
+{
+  "emotions": [
+    "neutral",
+    "smile",
+    "happy",
+    "sad",
+    "sleepy",
+    "surprised",
+    "thoughtful",
+    "shy",
+    "in_love",
+    "misses",
+    "offended",
+    "crying",
+    "calm",
+    "laughing"
+  ],
+  "actions": [
+    "coffee",
+    "breakfast",
+    "kiss",
+    "stretch",
+    "cat",
+    "movie",
+    "walk",
+    "talk"
+  ],
+  "target_folder": "frontend/public/marina/v2",
+  "recommended_main": "neutral.webp"
+}
