@@ -33,8 +33,9 @@ type ChatLine = { role: 'user' | 'marina'; text: string }
 type MarinaEmotion = 'neutral' | 'smile' | 'happy' | 'sad' | 'sleepy' | 'surprised' | 'thoughtful' | 'shy'
 type MarinaVisual = MarinaEmotion | 'coffee' | 'breakfast' | 'kiss' | 'stretch' | 'cat'
 
-const APP_VERSION = '1.1.0-room-scene'
+const APP_VERSION = '1.2.0-new-portrait'
 const API_URL = (import.meta.env.VITE_API_URL || 'https://web-production-9b804.up.railway.app').replace(/\/$/, '')
+const MAIN_PORTRAIT = '/marina/B8C4A0C3-3A7D-454C-BA75-17D1C6AF9278.png'
 
 const actions = [
   { id: 'coffee', title: 'Выпить кофе', reward: '+10 энергии · +5 настроения', icon: Coffee, visual: 'coffee' as MarinaVisual, duration: 3600 },
@@ -230,7 +231,7 @@ export default function App() {
   const marina = currentPlayer.marina
   const timeLabel = marina.period === 'morning' ? '08:00' : marina.period === 'day' ? '13:00' : marina.period === 'evening' ? '19:00' : '23:00'
   const periodLabel = marina.period === 'morning' ? 'Доброе утро' : marina.period === 'day' ? 'Добрый день' : marina.period === 'evening' ? 'Добрый вечер' : 'Спокойной ночи'
-  const marinaImage = activeVisual === 'neutral' ? '/marina/main.webp' : `/marina/${activeVisual}.webp`
+  const marinaImage = activeVisual === 'neutral' ? MAIN_PORTRAIT : `/marina/${activeVisual}.webp`
 
   return (
     <main className="game-shell">
@@ -241,7 +242,7 @@ export default function App() {
         ))}</div>
       </section>
 
-      <section className={`scene-panel period-${marina.period} emotion-${emotion}`}>
+      <section className={`scene-panel period-${marina.period} emotion-${emotion} scene-visual-${activeVisual}`}>
         <div className="room-scene" aria-hidden="true">
           <div className="room-wall"/><div className="room-window"><span/><span/><i/></div><div className="room-curtain left"/><div className="room-curtain right"/>
           <div className="room-shelf"><i/><i/><i/></div><div className="room-lamp"><span/><i/></div><div className="room-plant"><i/><i/><i/><b/></div>
@@ -257,9 +258,7 @@ export default function App() {
         <div className={`marina-character visual-${activeVisual}`}><div className="marina-aura"/><img src={marinaImage} alt={`Марина: ${emotionLabels[emotion]}`} draggable={false}/><span className="emotion-badge">{emotionLabels[emotion]}</span></div>
 
         <div className="speech-bubble"><div className="speech-title"><Heart size={17}/><strong>Марина</strong></div><p>{message}</p></div>
-
         <aside className="wish-card"><strong>Сегодня Марина хочет:</strong><span>🌳 Прогуляться в парке</span><span>🎬 Посмотреть фильм</span><span>☕ Выпить кофе вместе</span></aside>
-
         <button type="button" className="talk-button" onClick={() => setChatOpen(true)}><MessageCircle size={22}/><span>Поговорить<small>Марина помнит диалог</small></span></button>
       </section>
 
