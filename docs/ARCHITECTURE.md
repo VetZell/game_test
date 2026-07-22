@@ -15,7 +15,8 @@
   - `frontend/Dockerfile`, `frontend/railway.json`, and `frontend/serve.json` describe the static frontend deployment.
 - `backend/` — FastAPI backend with PostgreSQL persistence.
   - `backend/app/main.py` defines the FastAPI app, CORS middleware, health/root endpoints, Telegram auth endpoint, and thin chat/action route handlers.
-  - `backend/app/game_services.py` contains chat/action gameplay rules, economy/stat mutations, and memory/event creation.
+  - `backend/app/game_services.py` orchestrates chat/action state mutation, persistence, idempotent response models, and delegates deterministic Marina chat personality/memory response policy.
+  - `backend/app/personality.py` contains deterministic local intent classification, emotional-tone response variants, and safe recent user-memory selection for chat replies.
   - `backend/app/database.py` builds the async SQLAlchemy engine from `DATABASE_URL` and converts Railway-style `postgres://`/`postgresql://` URLs to `postgresql+asyncpg://`.
   - `backend/app/models.py` defines SQLAlchemy models for `users`, `marina_states`, `marina_memories`, and `idempotency_records`.
   - `backend/app/schemas.py` defines Pydantic request/response schemas.
@@ -35,7 +36,8 @@
 5. The backend gets or creates the player and initial `MarinaState` in PostgreSQL.
 6. Frontend actions and chat requests call `/api/v1/actions` and `/api/v1/chat`, respectively.
 7. FastAPI route handlers authenticate/load the player and call service-layer functions.
-8. The service layer mutates player/Marina state, persists memories/events, and returns updated response models to the route handler.
+8. The chat service classifies message intent, selects a safe relevant prior user memory when applicable, applies state changes, persists user/Marina memories, and returns the existing response model.
+9. The action service mutates player/Marina state, persists event memories, and returns updated response models to the route handler.
 
 ## Frontend API configuration
 - The frontend API base URL is `VITE_API_URL` when set.
@@ -89,14 +91,14 @@
 - Application image rollback must not use destructive database downgrade; baseline downgrade is intentionally irreversible.
 
 ## Tests and validation
-- Backend tests are run with `cd backend && pytest -q`.
+- Backend tests are run with `cd backend && pytest -q`; personality/memory policy coverage lives in `backend/tests/test_personality.py` and chat orchestration regressions in `backend/tests/test_game_services.py`.
 - Backend compile/import checks use `python -m compileall .` and FastAPI import checks.
 - Alembic graph checks use `cd backend && alembic heads` and `cd backend && alembic history --verbose`.
 - Frontend unit and integration tests use `cd frontend && npm test -- --run`; production build uses `cd frontend && npm run build`.
 
 ## Current boundaries and known limitations
 - Documentation changes in TASK-004 do not change runtime behavior, API contracts, UI, game balance, or database schema.
-- Backend gameplay/economy logic for chat/actions is concentrated in `backend/app/game_services.py`.
+- Backend chat orchestration remains in `backend/app/game_services.py`, while deterministic Marina personality and safe memory-selection policy is isolated in `backend/app/personality.py`; action economy remains in `game_services.py`.
 - Frontend sends idempotency keys with chat/action mutation payloads, and React-level Vitest/jsdom integration tests cover critical mocked auth, chat and action flows.
 - The former unauthenticated player helper endpoints `POST /api/v1/players` and `GET /api/v1/players/{telegram_id}` are removed; player creation/loading happens through Telegram-authenticated flows only.
 - Deployment does not automatically run Alembic migrations; operators must run/verify `./scripts/migrate.sh` separately before API rollout and `/health` verification.
