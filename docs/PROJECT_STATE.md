@@ -10,7 +10,7 @@
 - Entry point: `frontend/src/main.tsx`; current app shell and gameplay UI live primarily in `frontend/src/App.tsx`.
 - The frontend initializes Telegram WebApp APIs, reads `initData`, authenticates through the backend, renders Marina visuals from `frontend/public/marina/` assets, and calls backend chat/action endpoints.
 - API base URL comes from `VITE_API_URL`; when absent, code falls back to the current Railway backend URL.
-- Current frontend requests do not send backend `idempotency_key` values.
+- Chat/action frontend requests include backend-compatible `idempotency_key` values generated per intentional user mutation.
 
 ## Backend
 - FastAPI + async SQLAlchemy + PostgreSQL.
@@ -44,5 +44,4 @@
 
 ## Known Issues
 - Full production migration execution still requires a real `DATABASE_URL` and PostgreSQL staging/production-like validation.
-- Frontend idempotency-key rollout is not implemented yet.
 - Player helper endpoints remain in `backend/app/main.py`; chat/action gameplay rules now live in `backend/app/game_services.py`.

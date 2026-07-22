@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
+import { createMutationPayload } from './mutationPayload'
 import {
   ClipboardList, Coffee, Film, Footprints, Gem, Gift, Heart, Home, Mail,
   MessageCircle, Send, ShoppingBag, Shirt, ShieldCheck, Smile, Sofa, Sun,
@@ -162,9 +163,10 @@ export default function App() {
     setBusyAction(action)
     setError(null)
     try {
+      const payload = createMutationPayload({ init_data: initData, action })
       const response = await fetch(`${API_URL}/api/v1/actions`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ init_data: initData, action }), cache: 'no-store',
+        body: JSON.stringify(payload), cache: 'no-store',
       })
       if (!response.ok) {
         const payload = await response.json().catch(() => null)
@@ -192,9 +194,10 @@ export default function App() {
     setError(null)
     showVisual('talk', 2600)
     try {
+      const payload = createMutationPayload({ init_data: initData, message: text })
       const response = await fetch(`${API_URL}/api/v1/chat`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ init_data: initData, message: text }), cache: 'no-store',
+        body: JSON.stringify(payload), cache: 'no-store',
       })
       if (!response.ok) {
         const payload = await response.json().catch(() => null)

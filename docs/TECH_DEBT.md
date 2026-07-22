@@ -5,9 +5,6 @@
 - Current Docker startup commands do not run Alembic migrations automatically and the backend Docker build context does not copy Alembic assets into the runtime image; production migration execution remains a manual/operational step until deployment workflow is explicitly designed.
 - `POST /api/v1/players` and `GET /api/v1/players/{telegram_id}` are not Telegram-authenticated in the current code; review whether these helper endpoints should be protected, removed, or limited before production exposure.
 
-## Medium
-- Frontend calls to `/api/v1/chat` and `/api/v1/actions` do not send `idempotency_key`; decide and coordinate client rollout if duplicate-submission protection should be used by production clients.
-
 ## Low
 - Expand end-to-end and frontend coverage.
 - Review React rendering and bundle performance.

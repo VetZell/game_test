@@ -62,7 +62,7 @@
 - When a key is supplied, the backend stores a response and SHA-256 request fingerprint.
 - Reusing the same key with the same payload replays the stored response.
 - Reusing the same key with a different payload returns HTTP 409.
-- Current frontend calls do not yet send `idempotency_key`; this is documented as technical debt because backend support is optional and backward-compatible.
+- Frontend chat/action calls build mutation payloads with a fresh `idempotency_key` for each intentional user request.
 
 ## Migrations and database
 - Runtime `Base.metadata.create_all()` is not used by FastAPI startup.
@@ -92,7 +92,7 @@
 ## Current boundaries and known limitations
 - Documentation changes in TASK-004 do not change runtime behavior, API contracts, UI, game balance, or database schema.
 - Backend gameplay/economy logic for chat/actions is concentrated in `backend/app/game_services.py`; player helper endpoints remain in `backend/app/main.py`.
-- Frontend currently does not send idempotency keys to backend mutation endpoints.
+- Frontend sends idempotency keys with chat/action mutation payloads.
 - `POST /api/v1/players` and `GET /api/v1/players/{telegram_id}` are not Telegram-authenticated in current code.
 - Deployment does not automatically run Alembic migrations; operators must run/verify migrations separately.
 - PostgreSQL migration rollout needs staging/production-like validation.
