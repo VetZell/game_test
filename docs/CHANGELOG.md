@@ -23,3 +23,8 @@
 - Made baseline migration `20260722_0001` irreversible to prevent destructive downgrade of adopted pre-Alembic tables.
 - Added an automated test proving `alembic downgrade base` fails without deleting legacy `users`, `marina_states`, `marina_memories`, or user data.
 - Documented the baseline downgrade policy and rollback guidance.
+
+## TASK-004 — Architecture documentation audit
+- Added `docs/ARCHITECTURE.md` describing verified frontend, backend, Telegram, idempotency, migration and deployment structure.
+- Updated README, project state, roadmap and technical debt to match audited repository behavior without runtime changes.
+- Recorded confirmed future work for migration rollout, frontend idempotency adoption, unauthenticated helper endpoints and route-handler business logic.
