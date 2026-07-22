@@ -58,5 +58,5 @@ SUCCESS
 YES.
 
 ## Commit / PR
-- Implementation commit: `9b3fc15befa7d069ab0e883d369fff7ed8997fa6`.
+- Implementation commit: `f3cdc1d148b6afd522e787b3f0519a6b216dcd97`.
 - PR: #9 — https://github.com/VetZell/game_test/pull/9
