@@ -1,57 +1,62 @@
 # Task Report
 
 ## Task
-TASK-003 — Сделать Alembic baseline downgrade безопасным.
+TASK-004 — Проверить архитектуру репозитория и привести документацию к фактическому состоянию.
 
 ## Status
 SUCCESS
 
 ## Summary
-- Read the latest PR #2 review comment and confirmed the remaining blocker: baseline `downgrade()` could destructively drop adopted pre-Alembic tables.
-- Changed baseline migration `20260722_0001` to be intentionally irreversible with a clear runtime error instead of dropping tables.
-- Added automated coverage proving `alembic downgrade base` fails without deleting legacy `users`, `marina_states`, `marina_memories`, or existing user data.
-- Updated Alembic bootstrap documentation with the baseline downgrade policy and rollback guidance.
-- Updated project state, technical debt, changelog, and task status.
+- Started from updated `main` after PR #2 merge and created a separate branch `task-004-architecture-docs`.
+- Audited repository structure, frontend entry points, backend routes/models/schemas/settings/auth/idempotency, Alembic, Docker/Railway deployment files, tests and existing project documentation.
+- Added `docs/ARCHITECTURE.md` describing the verified Telegram Mini App → frontend → backend → PostgreSQL flow, authentication, state changes, idempotency, migrations, deployment and current limitations.
+- Updated README and project documentation to match verified code/configuration without runtime behavior changes.
+- Recorded confirmed technical debt for migration rollout, Docker/Alembic deployment workflow, frontend idempotency-key rollout, unauthenticated helper endpoints and route-handler business logic.
+- Runtime behavior, API contracts, UI, game economy and database schema were not changed.
 
 ## Files Changed
-- `backend/alembic/versions/20260722_0001_baseline.py` — replaces destructive baseline `downgrade()` table drops with an explicit irreversible-migration error.
-- `backend/tests/test_alembic_existing_database.py` — adds a pre-Alembic schema/data fixture and a downgrade safety test that verifies data survives failed `alembic downgrade base`.
-- `docs/ALEMBIC_BOOTSTRAP.md` — documents that baseline downgrade is intentionally disabled and rollback requires backup restore or a purpose-built manual migration.
-- `docs/PROJECT_STATE.md` — records the irreversible baseline downgrade policy.
-- `docs/TECH_DEBT.md` — updates remaining rollout debt to include PostgreSQL validation of upgrade and irreversible-downgrade failure paths.
-- `docs/CHANGELOG.md` — records TASK-003 downgrade safety changes.
-- `docs/TASK.md` — changes TASK-003 status from READY to DONE.
-- `docs/REPORT.md` — replaces the report with this TASK-003 completion report.
+- `docs/ARCHITECTURE.md` — new architecture overview based on audited repository files.
+- `README.md` — updates local/deployment instructions to reflect `VITE_API_URL`, `TELEGRAM_BOT_TOKEN`, `ENVIRONMENT`, DB behavior and Alembic rollout reality.
+- `docs/PROJECT_STATE.md` — expands verified frontend, backend, database, deployment and workflow state.
+- `docs/ROADMAP.md` — marks architecture audit/documentation alignment as completed and updates next steps with verified follow-up work.
+- `docs/TECH_DEBT.md` — replaces generic documentation debt with specific verified architecture/deployment/security debts.
+- `docs/CHANGELOG.md` — records TASK-004 documentation audit changes.
+- `docs/TASK.md` — changes TASK-004 status from READY to DONE.
+- `docs/REPORT.md` — replaces the previous TASK-003 report with this TASK-004 report.
 
 ## Problems Found
-- The baseline migration had an unsafe `downgrade()` implementation that dropped `idempotency_records`, `marina_memories`, `marina_states`, and `users` whenever `alembic downgrade base` was run.
-- On an existing pre-Alembic production database adopted by the baseline migration, that downgrade path could silently destroy real user data.
+- `README.md` did not mention `TELEGRAM_BOT_TOKEN`, `ENVIRONMENT`, the frontend `VITE_API_URL` fallback, or that DB-backed endpoints cannot work when `DATABASE_URL` is absent.
+- `docs/PROJECT_STATE.md` described high-level state but did not identify actual entry points, deployment behavior, unauthenticated helper endpoints, or frontend idempotency-key gap.
+- `docs/ROADMAP.md` still listed architecture/documentation verification as a future task after TASK-004 started.
+- `docs/TECH_DEBT.md` contained generic documentation debt instead of verified follow-up items found in code/configuration.
+- No `docs/ARCHITECTURE.md` existed.
 
 ## Problems Fixed
-- Baseline `downgrade()` now raises a clear error and performs no destructive table operations.
-- A regression test now creates legacy user/state/memory data, runs `alembic upgrade head`, attempts `alembic downgrade base`, asserts the downgrade fails, and verifies the legacy tables/data remain intact.
-- Documentation now explicitly says baseline downgrade is not a production rollback mechanism.
+- Added architecture documentation grounded in current source/configuration.
+- Updated README to accurately describe local/deployment variables, database requirements, and migration rollout.
+- Updated project state and roadmap with verified repository reality.
+- Replaced generic documentation debt with confirmed technical debt requiring future code/deployment decisions.
 
 ## Tests
+- `git status --short --branch` — PASS; only expected documentation changes and untracked `frontend/node_modules/` were present before commit.
+- `git diff --check` — PASS; no whitespace errors found.
 - `cd backend && pytest -q` — PASS; 10 tests passed.
 - `cd backend && python -m compileall .` — PASS; backend Python files compiled successfully.
-- `cd backend && python -c 'from app.main import app; print(app.title, app.version)'` — PASS; FastAPI app imported and printed `Day Marina API 0.8.0`.
 - `cd backend && alembic heads` — PASS; reported `20260722_0001 (head)`.
-- `cd backend && alembic history --verbose` — PASS; migration graph contains baseline revision `20260722_0001`.
-- `git diff --check` — PASS; no whitespace errors found.
+- `cd frontend && npm run build` — PASS; TypeScript and Vite production build completed successfully. npm emitted a warning about unknown env config `http-proxy`, but the command exited successfully.
+- `cd backend && python -c 'from app.main import app; print(app.title, app.version)'` — PASS; additional sanity check printed `Day Marina API 0.8.0`.
+- `cd backend && alembic history --verbose` — PASS; additional sanity check showed baseline revision `20260722_0001` as the graph head.
 
 ## Risks
-- Baseline downgrade is intentionally unavailable; rollback now requires restoring from backup or writing a deployment-specific manual migration.
-- SQLite test coverage verifies data preservation for the adopted-schema downgrade failure path, but PostgreSQL staging/production-like validation remains required before rollout.
+- This task intentionally changed documentation only. It records, but does not fix, code/deployment issues such as unauthenticated helper endpoints, missing frontend idempotency keys and manual migration rollout.
+- Production-like PostgreSQL migration validation remains outstanding.
 
 ## Technical Debt
-- Remaining debt is documented in `docs/TECH_DEBT.md`: validate baseline upgrade and irreversible-downgrade failure behavior on a staging/production-like PostgreSQL copy before production rollout.
+- Remaining verified debt is documented in `docs/TECH_DEBT.md` with priorities.
 
 ## Safe To Merge
 YES.
 
 ## Commit / PR
-- Previous TASK-001 commit: `0502868eccfcea6a53502f9c2d7cf54d3e445fe9`.
-- TASK-002 implementation commit: `22db63968b55fbb8445951ed41018bbd4a44d55f`.
-- TASK-003 implementation commit: `af0ff95b4b40aa2e46f4bf170a1662eb001ae8a0`.
-- PR: #2 — https://github.com/VetZell/game_test/pull/2
+- Commit: pending until commit is created.
+- PR: pending until PR is created.
