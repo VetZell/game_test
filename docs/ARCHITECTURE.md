@@ -7,6 +7,8 @@
 - `frontend/` — React + TypeScript + Vite Telegram Mini App frontend.
   - `frontend/src/main.tsx` mounts React and imports global styles.
   - `frontend/src/App.tsx` contains the current single-page game shell, Telegram WebApp initialization, API calls, local UI state, Marina visuals, action buttons, and chat overlay.
+  - `frontend/src/mutationPayload.ts` builds chat/action mutation payloads with per-request `idempotency_key` values.
+  - `frontend/src/mutationPayload.test.ts` covers idempotency key generation and mutation payload behavior with Vitest in Node mode.
   - `frontend/src/telegram.d.ts` declares the Telegram WebApp browser API used by the app.
   - `frontend/public/marina/` and `frontend/public/marina/v2/` contain Marina image assets and manifests.
   - `frontend/Dockerfile`, `frontend/railway.json`, and `frontend/serve.json` describe the static frontend deployment.
@@ -89,7 +91,7 @@
 - Backend tests are run with `cd backend && pytest -q`.
 - Backend compile/import checks use `python -m compileall .` and FastAPI import checks.
 - Alembic graph checks use `cd backend && alembic heads` and `cd backend && alembic history --verbose`.
-- Frontend build uses `cd frontend && npm run build`.
+- Frontend unit tests use `cd frontend && npm test -- --run`; production build uses `cd frontend && npm run build`.
 
 ## Current boundaries and known limitations
 - Documentation changes in TASK-004 do not change runtime behavior, API contracts, UI, game balance, or database schema.
