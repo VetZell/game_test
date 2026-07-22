@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from .database import engine, get_session
-from .idempotency import run_idempotent
+from .idempotency import request_fingerprint, run_idempotent
 from .models import MarinaMemory, MarinaState, User
 from .schemas import (
     GameActionRequest,
@@ -197,6 +197,7 @@ async def chat_with_marina(
         user=user,
         endpoint="chat",
         key=payload.idempotency_key,
+        fingerprint=request_fingerprint({"message": payload.message}),
         response_model=MarinaChatResponse,
         operation=operation,
     )
@@ -283,6 +284,7 @@ async def perform_action(
         user=user,
         endpoint="actions",
         key=payload.idempotency_key,
+        fingerprint=request_fingerprint({"action": payload.action}),
         response_model=GameActionResponse,
         operation=operation,
     )

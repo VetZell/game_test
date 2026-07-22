@@ -11,9 +11,9 @@
 
 ## Backend
 - FastAPI + PostgreSQL.
-- Runtime schema creation has been removed from the FastAPI lifespan; schema management is now represented by Alembic configuration and a baseline migration.
-- Production CORS origins are read from `CORS_ORIGINS`; local development origins are added only for local/development/test environments.
-- Economy-changing chat and action requests support optional idempotency keys backed by persisted idempotency records.
+- Runtime schema creation has been removed from the FastAPI lifespan; schema management is now represented by Alembic configuration and a baseline migration that handles empty databases and existing create_all-created schemas.
+- Production CORS origins are read from `CORS_ORIGINS`; localhost origins are denied by default and added only when `ENVIRONMENT`/`APP_ENV` explicitly selects a local/development/test environment.
+- Economy-changing chat and action requests support optional idempotency keys backed by persisted idempotency records with request fingerprints; reusing a key with a different payload returns HTTP 409.
 - Telegram authentication remains in place for authenticated chat/action flows.
 
 ## Current Workflow

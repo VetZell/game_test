@@ -1,5 +1,7 @@
 from collections.abc import Awaitable, Callable
-from typing import TypeVar
+import hashlib
+import json
+from typing import Any, TypeVar
 
 from fastapi import HTTPException, status
 from pydantic import BaseModel
@@ -12,12 +14,26 @@ from .models import IdempotencyRecord, User
 ResponseT = TypeVar("ResponseT", bound=BaseModel)
 
 
+def request_fingerprint(payload: dict[str, Any]) -> str:
+    canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def ensure_fingerprint_matches(existing: IdempotencyRecord, fingerprint: str) -> None:
+    if existing.request_fingerprint != fingerprint:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Idempotency key conflict; retry with the original payload or use a new key.",
+        )
+
+
 async def run_idempotent(
     *,
     session: AsyncSession,
     user: User,
     endpoint: str,
     key: str | None,
+    fingerprint: str,
     response_model: type[ResponseT],
     operation: Callable[[], Awaitable[ResponseT]],
 ) -> ResponseT:
@@ -34,6 +50,7 @@ async def run_idempotent(
         )
     )
     if existing is not None:
+        ensure_fingerprint_matches(existing, fingerprint)
         return response_model.model_validate(existing.response)
 
     response = await operation()
@@ -42,6 +59,7 @@ async def run_idempotent(
             user_id=user.id,
             endpoint=endpoint,
             key=key,
+            request_fingerprint=fingerprint,
             response=response.model_dump(mode="json"),
         )
     )
@@ -57,6 +75,7 @@ async def run_idempotent(
             )
         )
         if existing is not None:
+            ensure_fingerprint_matches(existing, fingerprint)
             return response_model.model_validate(existing.response)
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,

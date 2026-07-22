@@ -4,7 +4,7 @@
 TASK-002
 
 ## Status
-READY
+DONE
 
 ## Priority
 High

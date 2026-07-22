@@ -1,4 +1,4 @@
-from app.settings import get_allowed_origins, parse_cors_origins
+from app.settings import get_allowed_origins, get_environment, parse_cors_origins
 
 
 def test_parse_cors_origins_trims_deduplicates_and_strips_slashes():
@@ -8,7 +8,15 @@ def test_parse_cors_origins_trims_deduplicates_and_strips_slashes():
     ]
 
 
-def test_development_keeps_local_origins(monkeypatch):
+def test_environment_defaults_to_production(monkeypatch):
+    monkeypatch.delenv("ENVIRONMENT", raising=False)
+    monkeypatch.delenv("APP_ENV", raising=False)
+
+    assert get_environment() == "production"
+    assert get_allowed_origins() == []
+
+
+def test_development_keeps_local_origins_when_explicit(monkeypatch):
     monkeypatch.delenv("CORS_ORIGINS", raising=False)
     monkeypatch.setenv("ENVIRONMENT", "development")
 
