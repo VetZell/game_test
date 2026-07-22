@@ -8,10 +8,16 @@
 .scene-panel{min-height:650px;border-radius:28px;background:#17121b;box-shadow:0 22px 70px rgba(0,0,0,.55)}
 .left-rail{left:12px;top:18px;width:106px;gap:9px}.wallet-card{padding:10px;border-radius:20px}.wallet-card div{grid-template-columns:22px 1fr 28px;padding:7px 0}.wallet-card strong{font-size:16px}.wallet-card button{width:28px;height:28px;font-size:16px}.side-action{min-height:90px;border-radius:22px;font-size:11px;gap:8px}.side-action svg{width:30px;height:30px}.side-action b{width:25px;height:25px;font-size:12px;right:7px;top:7px}
 
-/* Марина по пояс: не растягиваем изображение и не обрезаем лицо */
+/* Новый основной портрет уже содержит комнату и Марину по пояс */
+.scene-visual-neutral .room-scene{display:none}
+.scene-visual-neutral .marina-character{inset:0;left:0;bottom:0;width:100%;height:100%;transform:none;animation:none;display:block}
+.scene-visual-neutral .marina-aura{display:none}
+.scene-visual-neutral .visual-neutral img{width:100%;height:100%;max-width:none;max-height:none;object-fit:cover;object-position:center 39%;border-radius:0;mask-image:none;filter:none}
+.scene-visual-neutral .emotion-badge{display:none}
+
+/* Остальные эмоции и действия продолжают показываться поверх комнаты */
 .marina-character{left:55%;bottom:54px;width:245px;height:410px;align-items:flex-end}
 .marina-character img{display:block;max-width:100%;max-height:100%;object-fit:contain;object-position:center bottom;border-radius:0;filter:drop-shadow(0 24px 30px rgba(0,0,0,.55))}
-.visual-neutral img{width:100%;height:100%;object-fit:contain;object-position:center bottom;border-radius:0;mask-image:linear-gradient(to bottom,#000 0 94%,transparent 100%)}
 .visual-smile img,.visual-happy img,.visual-sad img,.visual-sleepy img,.visual-surprised img,.visual-thoughtful img,.visual-shy img{width:235px;height:340px;aspect-ratio:auto;object-fit:contain;object-position:center bottom;margin:0 0 24px;border-radius:24px;mask-image:linear-gradient(to bottom,#000 0 94%,transparent 100%)}
 .visual-coffee img,.visual-breakfast img,.visual-kiss img,.visual-stretch img,.visual-cat img{width:245px;height:385px;object-fit:contain;object-position:center bottom}
 .emotion-badge{bottom:8px;font-size:10px;padding:5px 10px}
@@ -26,6 +32,7 @@
 @media(max-width:420px){
   .game-shell{padding-left:5px;padding-right:5px}.hud-panel{grid-template-columns:136px 1fr}.time-card{padding:15px 13px}.time-card strong{font-size:31px}.stats-row{grid-auto-columns:158px}.mini-stat{padding:13px}.mini-stat strong{font-size:16px}
   .scene-panel{min-height:620px}.left-rail{width:96px}.wallet-card strong{font-size:14px}.side-action{min-height:82px;font-size:10px}
+  .scene-visual-neutral .visual-neutral img{object-position:center 40%}
   .marina-character{left:56%;bottom:58px;width:218px;height:370px}.visual-smile img,.visual-happy img,.visual-sad img,.visual-sleepy img,.visual-surprised img,.visual-thoughtful img,.visual-shy img{width:210px;height:305px}.visual-coffee img,.visual-breakfast img,.visual-kiss img,.visual-stretch img,.visual-cat img{width:218px;height:350px}
   .speech-bubble{width:190px;padding:13px 14px}.speech-title{font-size:15px}.speech-bubble p{font-size:12px}
   .wish-card{width:210px;padding:12px 14px}.wish-card strong{font-size:13px}.wish-card span{font-size:11px}
