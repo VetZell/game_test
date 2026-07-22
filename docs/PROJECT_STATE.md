@@ -14,7 +14,7 @@
 
 ## Backend
 - FastAPI + async SQLAlchemy + PostgreSQL.
-- Entry point: `backend/app/main.py`; deployment command runs `uvicorn app.main:app`.
+- Entry point: `backend/app/main.py`; deployment command runs `uvicorn app.main:app`. Chat/action route handlers now delegate gameplay/economy mutations to `backend/app/game_services.py`.
 - Runtime schema creation has been removed from the FastAPI lifespan; schema management is represented by Alembic configuration and a baseline migration that handles empty databases and existing create_all-created schemas.
 - The baseline downgrade is intentionally irreversible to prevent accidental deletion of adopted pre-Alembic tables and user data.
 - Production CORS origins are read from `CORS_ORIGINS`; localhost origins are denied by default and added only when `ENVIRONMENT`/`APP_ENV` explicitly selects a local/development/test environment.
@@ -45,4 +45,4 @@
 ## Known Issues
 - Full production migration execution still requires a real `DATABASE_URL` and PostgreSQL staging/production-like validation.
 - Frontend idempotency-key rollout is not implemented yet.
-- Some backend gameplay/economy logic remains in route handlers rather than separate service modules.
+- Player helper endpoints remain in `backend/app/main.py`; chat/action gameplay rules now live in `backend/app/game_services.py`.

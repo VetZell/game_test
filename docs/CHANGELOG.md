@@ -28,3 +28,8 @@
 - Added `docs/ARCHITECTURE.md` describing verified frontend, backend, Telegram, idempotency, migration and deployment structure.
 - Updated README, project state, roadmap and technical debt to match audited repository behavior without runtime changes.
 - Recorded confirmed future work for migration rollout, frontend idempotency adoption, unauthenticated helper endpoints and route-handler business logic.
+
+## TASK-005 — Chat/action service extraction
+- Moved chat reply/state/memory logic and action economy/state/event logic from FastAPI handlers into `backend/app/game_services.py` without changing API contracts or game balance.
+- Added service-level tests covering chat behavior, all supported actions, state mutations and memory/event creation.
+- Kept idempotency behavior covered by existing replay/conflict tests and updated architecture/project documentation.

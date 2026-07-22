@@ -7,7 +7,6 @@
 
 ## Medium
 - Frontend calls to `/api/v1/chat` and `/api/v1/actions` do not send `idempotency_key`; decide and coordinate client rollout if duplicate-submission protection should be used by production clients.
-- Gameplay/economy mutation logic currently lives inside FastAPI route handlers in `backend/app/main.py`; consider extracting service-level logic after behavior is covered by broader tests.
 
 ## Low
 - Expand end-to-end and frontend coverage.
