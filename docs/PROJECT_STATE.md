@@ -25,12 +25,12 @@
 ## Database and Migrations
 - `DATABASE_URL` configures the async database engine; `postgres://` and `postgresql://` URLs are converted to `postgresql+asyncpg://`.
 - Alembic revision `20260722_0001` covers `users`, `marina_states`, `marina_memories`, and `idempotency_records`.
-- Migration application is an operational step; current Docker startup commands do not run Alembic automatically.
+- Migration application is an explicit operational step via `backend/scripts/migrate.sh`; Docker startup commands do not run Alembic automatically.
 
 ## Deployment
-- Root and backend Dockerfiles run the FastAPI backend with Uvicorn.
+- Root and backend Dockerfiles include Alembic assets plus `scripts/` in the backend runtime image and run the FastAPI backend with Uvicorn only.
 - Frontend Dockerfile builds static Vite output and serves it with `serve`.
-- Railway JSON files define Dockerfile builders and healthcheck paths for root/backend/frontend deployment layouts.
+- Railway JSON files define Dockerfile builders and healthcheck paths for root/backend/frontend deployment layouts; migrations are run separately before API deploy/start and `/health` verification.
 
 ## Current Workflow
 - ChatGPT writes the active task into `docs/TASK.md`.

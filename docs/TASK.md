@@ -4,7 +4,7 @@
 TASK-008
 
 ## Status
-READY
+DONE
 
 ## Priority
 High

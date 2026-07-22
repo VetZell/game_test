@@ -9,9 +9,10 @@
 - TASK-005 chat/action service-layer extraction without behavior changes.
 - TASK-006 frontend idempotency-key rollout for chat/action mutations.
 - TASK-007 removal of unauthenticated player helper endpoints.
+- TASK-008 safe Alembic deployment workflow with Docker image assets and explicit migration command.
 
 ## Next
-1. Validate Alembic upgrade and irreversible-downgrade failure behavior against a PostgreSQL staging/production-like database copy.
+1. Validate Alembic upgrade, explicit migration command, and irreversible-downgrade failure behavior against a PostgreSQL staging/production-like database copy.
 2. Expand end-to-end and frontend coverage.
 3. Develop Marina personality, memory systems, content, emotions, activities and mini-games.
 4. Production readiness and release monitoring.

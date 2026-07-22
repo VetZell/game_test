@@ -43,3 +43,9 @@
 - Removed unauthenticated `POST /api/v1/players` and `GET /api/v1/players/{telegram_id}` routes because frontend and backend flows use Telegram-authenticated auth/chat/action endpoints instead.
 - Added HTTP-level tests proving the former helper routes return `404`, cannot create/read other users, and authenticated auth/chat/action flows still work.
 - Removed the completed unauthenticated player helper endpoint debt from project documentation.
+
+## TASK-008 — Safe Alembic deployment workflow
+- Added `backend/scripts/migrate.sh` as an explicit operator command that requires `DATABASE_URL` and runs only `alembic upgrade head`.
+- Updated root and backend Dockerfiles to include Alembic config, migration revisions and backend scripts in supported backend runtime images.
+- Added static tests proving Alembic assets are copied, migration command is separate/upgrade-only, and API startup does not run hidden migrations.
+- Updated deployment documentation to separate migration, API start/deploy, health check and safe application rollback boundaries.
