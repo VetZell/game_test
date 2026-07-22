@@ -54,3 +54,7 @@
 - Added Vitest as a lightweight frontend unit-test runner with a non-watch `npm test -- --run` workflow.
 - Added unit tests for idempotency key generation, `crypto.randomUUID()` usage, fallback behavior, field preservation, and stable reuse of constructed mutation payloads.
 - Updated frontend/project documentation to record the tested mutation payload behavior without changing UI, backend API, gameplay, or database schema.
+## TASK-010 — Frontend auth/chat/action integration tests
+- Added Vitest/jsdom React integration tests for Telegram auth success and error loading states with mocked Telegram WebApp and fetch.
+- Added integration tests for chat and action requests, including `init_data`, non-empty `idempotency_key`, successful state updates, pending action duplicate protection, and chat HTTP error recovery.
+- Added Testing Library/jsdom devDependencies only and updated frontend/project documentation without changing UI, backend API, gameplay, idempotency semantics or database schema.
