@@ -8,9 +8,9 @@
 .scene-panel{min-height:650px;border-radius:28px;background:#17121b;box-shadow:0 22px 70px rgba(0,0,0,.55)}
 .left-rail{left:12px;top:18px;width:106px;gap:9px}.wallet-card{padding:10px;border-radius:20px}.wallet-card div{grid-template-columns:22px 1fr 28px;padding:7px 0}.wallet-card strong{font-size:16px}.wallet-card button{width:28px;height:28px;font-size:16px}.side-action{min-height:90px;border-radius:22px;font-size:11px;gap:8px}.side-action svg{width:30px;height:30px}.side-action b{width:25px;height:25px;font-size:12px;right:7px;top:7px}
 
-/* Портреты v2: каждая эмоция занимает всю игровую сцену */
+/* Портреты v2: показываем весь портрет по пояс, не приближаем лицо */
 .scene-visual-neutral .room-scene,.scene-visual-smile .room-scene,.scene-visual-happy .room-scene,.scene-visual-sad .room-scene,.scene-visual-sleepy .room-scene,.scene-visual-surprised .room-scene,.scene-visual-thoughtful .room-scene,.scene-visual-shy .room-scene{display:none}
-.scene-visual-neutral .marina-character,.scene-visual-smile .marina-character,.scene-visual-happy .marina-character,.scene-visual-sad .marina-character,.scene-visual-sleepy .marina-character,.scene-visual-surprised .marina-character,.scene-visual-thoughtful .marina-character,.scene-visual-shy .marina-character{inset:0;left:0;bottom:0;width:100%;height:100%;transform:none;animation:marina-state-fade .42s ease both;display:block;background-position:center 43%;background-size:cover;background-repeat:no-repeat}
+.scene-visual-neutral .marina-character,.scene-visual-smile .marina-character,.scene-visual-happy .marina-character,.scene-visual-sad .marina-character,.scene-visual-sleepy .marina-character,.scene-visual-surprised .marina-character,.scene-visual-thoughtful .marina-character,.scene-visual-shy .marina-character{inset:0;left:0;bottom:0;width:100%;height:100%;transform:none;animation:marina-state-fade .42s ease both;display:block;background-position:center bottom;background-size:auto 91%;background-repeat:no-repeat;background-color:#17121b}
 .scene-visual-neutral .marina-character{background-image:url('/marina/v2/neutral.webp')}
 .scene-visual-smile .marina-character{background-image:url('/marina/v2/smile.webp')}
 .scene-visual-happy .marina-character{background-image:url('/marina/v2/happy.webp')}
@@ -26,7 +26,7 @@
 /* Сцены действий v2 */
 .marina-character{left:55%;bottom:54px;width:245px;height:410px;align-items:flex-end}
 .marina-character img{display:block;max-width:100%;max-height:100%;object-fit:contain;object-position:center bottom;border-radius:0;filter:drop-shadow(0 24px 30px rgba(0,0,0,.55))}
-.scene-visual-coffee .marina-character,.scene-visual-breakfast .marina-character,.scene-visual-kiss .marina-character,.scene-visual-stretch .marina-character,.scene-visual-cat .marina-character{inset:0;left:0;bottom:0;width:100%;height:100%;transform:none;animation:marina-state-fade .35s ease both;display:block;background-position:center 43%;background-size:cover;background-repeat:no-repeat}
+.scene-visual-coffee .marina-character,.scene-visual-breakfast .marina-character,.scene-visual-kiss .marina-character,.scene-visual-stretch .marina-character,.scene-visual-cat .marina-character{inset:0;left:0;bottom:0;width:100%;height:100%;transform:none;animation:marina-state-fade .35s ease both;display:block;background-position:center bottom;background-size:auto 91%;background-repeat:no-repeat;background-color:#17121b}
 .scene-visual-coffee .marina-character{background-image:url('/marina/v2/coffee.webp')}
 .scene-visual-breakfast .marina-character{background-image:url('/marina/v2/breakfast.webp')}
 .scene-visual-kiss .marina-character{background-image:url('/marina/v2/kiss.webp')}
@@ -34,7 +34,7 @@
 .scene-visual-cat .marina-character{background-image:url('/marina/v2/cat.webp')}
 .scene-visual-coffee .marina-character img,.scene-visual-breakfast .marina-character img,.scene-visual-kiss .marina-character img,.scene-visual-stretch .marina-character img,.scene-visual-cat .marina-character img,.scene-visual-coffee .marina-aura,.scene-visual-breakfast .marina-aura,.scene-visual-kiss .marina-aura,.scene-visual-stretch .marina-aura,.scene-visual-cat .marina-aura,.scene-visual-coffee .emotion-badge,.scene-visual-breakfast .emotion-badge,.scene-visual-kiss .emotion-badge,.scene-visual-stretch .emotion-badge,.scene-visual-cat .emotion-badge{display:none}
 
-@keyframes marina-state-fade{from{opacity:.15;transform:scale(1.015)}to{opacity:1;transform:scale(1)}}
+@keyframes marina-state-fade{from{opacity:.15;transform:scale(1.01)}to{opacity:1;transform:scale(1)}}
 
 .speech-bubble{right:10px;top:18px;width:220px;padding:15px 16px;border-radius:24px;background:rgba(8,10,18,.94)}.speech-title{color:#ff62b4;font-size:16px}.speech-bubble p{font-size:13px;line-height:1.42;margin-top:10px}
 .wish-card{left:12px;bottom:68px;width:238px;padding:14px 16px;gap:7px;border-radius:22px;background:rgba(8,10,18,.94)}.wish-card strong{font-size:14px;color:#ff69b5}.wish-card span{font-size:12px;line-height:1.35}
@@ -47,7 +47,7 @@
 @media(max-width:420px){
   .game-shell{padding-left:5px;padding-right:5px}.hud-panel{grid-template-columns:136px 1fr}.time-card{padding:15px 13px}.time-card strong{font-size:31px}.stats-row{grid-auto-columns:158px}.mini-stat{padding:13px}.mini-stat strong{font-size:16px}
   .scene-panel{min-height:620px}.left-rail{width:96px}.wallet-card strong{font-size:14px}.side-action{min-height:82px;font-size:10px}
-  .scene-visual-neutral .marina-character,.scene-visual-smile .marina-character,.scene-visual-happy .marina-character,.scene-visual-sad .marina-character,.scene-visual-sleepy .marina-character,.scene-visual-surprised .marina-character,.scene-visual-thoughtful .marina-character,.scene-visual-shy .marina-character,.scene-visual-coffee .marina-character,.scene-visual-breakfast .marina-character,.scene-visual-kiss .marina-character,.scene-visual-stretch .marina-character,.scene-visual-cat .marina-character{background-position:center 43%}
+  .scene-visual-neutral .marina-character,.scene-visual-smile .marina-character,.scene-visual-happy .marina-character,.scene-visual-sad .marina-character,.scene-visual-sleepy .marina-character,.scene-visual-surprised .marina-character,.scene-visual-thoughtful .marina-character,.scene-visual-shy .marina-character,.scene-visual-coffee .marina-character,.scene-visual-breakfast .marina-character,.scene-visual-kiss .marina-character,.scene-visual-stretch .marina-character,.scene-visual-cat .marina-character{background-size:auto 86%;background-position:center bottom}
   .speech-bubble{width:190px;padding:13px 14px}.speech-title{font-size:15px}.speech-bubble p{font-size:12px}
   .wish-card{width:210px;padding:12px 14px}.wish-card strong{font-size:13px}.wish-card span{font-size:11px}
   .talk-button{padding:12px 14px}.talk-button span{font-size:15px}.talk-button small{display:none}
