@@ -45,14 +45,14 @@ ENVIRONMENT=development
 
 ## Миграции
 
-Schema management выполняется через Alembic:
+Schema management выполняется через Alembic. Для локального запуска из `backend/` используйте явную команду:
 
 ```bash
 cd backend
-DATABASE_URL=<database url> alembic upgrade head
+DATABASE_URL=<database url> ./scripts/migrate.sh
 ```
 
-Baseline revision `20260722_0001` поддерживает пустую БД и существующую схему, созданную прежним runtime `create_all()`. Downgrade baseline intentionally irreversible, чтобы не удалить adopted pre-Alembic таблицы и данные. Подробности: [`docs/ALEMBIC_BOOTSTRAP.md`](docs/ALEMBIC_BOOTSTRAP.md).
+`backend/scripts/migrate.sh` проверяет наличие `DATABASE_URL` и затем выполняет только `alembic upgrade head`; обычный `uvicorn` startup не запускает миграции автоматически. Baseline revision `20260722_0001` поддерживает пустую БД и существующую схему, созданную прежним runtime `create_all()`. Downgrade baseline intentionally irreversible, чтобы не удалить adopted pre-Alembic таблицы и данные. Подробности: [`docs/ALEMBIC_BOOTSTRAP.md`](docs/ALEMBIC_BOOTSTRAP.md).
 
 ## Развёртывание backend на Railway
 
@@ -69,9 +69,16 @@ ENVIRONMENT=production
 ```
 
 5. В настройках Networking создайте публичный домен.
-6. Railway использует `backend/Dockerfile` и `backend/railway.json` для backend layout.
-7. Перед production rollout выполните/проверьте Alembic migration отдельно от startup-команды.
-8. Проверка сервера:
+6. Railway использует `backend/Dockerfile` и `backend/railway.json` для backend layout; root layout использует `Dockerfile` и `railway.json`. Оба backend image layout копируют `alembic.ini`, `alembic/` и `scripts/`.
+7. Перед production rollout выполните migration отдельной командой из того же backend image или shell окружения, не объединяя её с API startup:
+
+```bash
+cd backend
+DATABASE_URL=${{Postgres.DATABASE_URL}} ./scripts/migrate.sh
+```
+
+8. После успешной migration deploy/start API выполняется обычной командой `uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}`.
+9. Проверка сервера после rollout:
 
 ```text
 https://ваш-домен.railway.app/health
@@ -85,3 +92,6 @@ https://ваш-домен.railway.app/health
   "database": "ok"
 }
 ```
+
+
+Rollback application image выполняйте отдельно от базы данных. Не используйте `alembic downgrade base` для production rollback: baseline migration intentionally irreversible и не должна удалять adopted пользовательские таблицы.

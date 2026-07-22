@@ -19,6 +19,7 @@
   - `backend/app/telegram_auth.py` validates Telegram Mini App `initData` using `TELEGRAM_BOT_TOKEN`.
   - `backend/app/idempotency.py` stores/replays idempotent responses and rejects same-key/different-payload conflicts.
   - `backend/alembic.ini` and `backend/alembic/` define migration tooling.
+  - `backend/scripts/migrate.sh` is the explicit operator command for `alembic upgrade head`.
   - `backend/tests/` contains pytest coverage for CORS settings, idempotency, runtime schema audit, and Alembic behavior.
 - `docs/` — file-based workflow, task/report documents, project state, roadmap, technical debt, changelog, Alembic bootstrap notes, and this architecture document.
 - Root `Dockerfile` and `railway.json` describe an alternative backend deployment from repository root; `backend/Dockerfile` and `backend/railway.json` describe backend deployment when Railway root directory is `backend`.
@@ -77,10 +78,12 @@
 - Localhost origins are appended only when `ENVIRONMENT` or `APP_ENV` is explicitly one of `local`, `development`, `dev`, or `test`.
 
 ## Deployment
-- Backend Docker command runs `uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}`.
+- Root backend Docker layout (`Dockerfile`) and backend-root layout (`backend/Dockerfile`) both install backend requirements and copy `app/`, `alembic.ini`, `alembic/`, and `scripts/` into the runtime image.
+- Backend Docker command runs only `uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}` and does not run Alembic migrations automatically.
+- Operators run migrations separately with `./scripts/migrate.sh`, which requires `DATABASE_URL` and executes `alembic upgrade head`.
+- Railway configs define Dockerfile builds and health checks; migration, API start/deploy, and `/health` verification are separate rollout steps.
 - Frontend Docker builds with `npm run build` and serves `dist` using `serve` on `${PORT:-3000}`.
-- Railway configs define Dockerfile builds and health checks.
-- Current Dockerfiles do not run Alembic migrations automatically during startup; migration rollout remains a separate operational step.
+- Application image rollback must not use destructive database downgrade; baseline downgrade is intentionally irreversible.
 
 ## Tests and validation
 - Backend tests are run with `cd backend && pytest -q`.
@@ -93,5 +96,5 @@
 - Backend gameplay/economy logic for chat/actions is concentrated in `backend/app/game_services.py`.
 - Frontend sends idempotency keys with chat/action mutation payloads.
 - The former unauthenticated player helper endpoints `POST /api/v1/players` and `GET /api/v1/players/{telegram_id}` are removed; player creation/loading happens through Telegram-authenticated flows only.
-- Deployment does not automatically run Alembic migrations; operators must run/verify migrations separately.
+- Deployment does not automatically run Alembic migrations; operators must run/verify `./scripts/migrate.sh` separately before API rollout and `/health` verification.
 - PostgreSQL migration rollout needs staging/production-like validation.

@@ -4,21 +4,23 @@
 TASK-002 verifies the migration path for deployments that already created the current schema with the previous FastAPI `Base.metadata.create_all()` startup behavior.
 
 ## New deployments
-For an empty database, run:
+For an empty database, run the explicit migration command:
 
 ```bash
 cd backend
-DATABASE_URL=<production database url> alembic upgrade head
+DATABASE_URL=<production database url> ./scripts/migrate.sh
 ```
+
+The script checks that `DATABASE_URL` is present and then executes `alembic upgrade head` without running downgrade or hiding Alembic errors.
 
 The baseline revision `20260722_0001` creates the current tables and records the Alembic version.
 
 ## Existing deployments created by `create_all()`
-For a database that already contains `users`, `marina_states`, and `marina_memories`, run the same command:
+For a database that already contains `users`, `marina_states`, and `marina_memories`, run the same explicit command:
 
 ```bash
 cd backend
-DATABASE_URL=<production database url> alembic upgrade head
+DATABASE_URL=<production database url> ./scripts/migrate.sh
 ```
 
 The baseline migration checks whether current tables already exist before creating them, creates missing idempotency infrastructure, adds the `request_fingerprint` column when needed, and then records revision `20260722_0001` in `alembic_version`.
