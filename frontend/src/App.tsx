@@ -33,7 +33,7 @@ type ChatLine = { role: 'user' | 'marina'; text: string }
 type MarinaEmotion = 'neutral' | 'smile' | 'happy' | 'sad' | 'sleepy' | 'surprised' | 'thoughtful' | 'shy'
 type MarinaVisual = MarinaEmotion | 'coffee' | 'breakfast' | 'kiss' | 'stretch' | 'cat' | 'movie' | 'walk' | 'talk'
 
-const APP_VERSION = '1.3.0-actions-v2'
+const APP_VERSION = '1.3.1-happy-png'
 const API_URL = (import.meta.env.VITE_API_URL || 'https://web-production-9b804.up.railway.app').replace(/\/$/, '')
 
 const actions = [
@@ -231,7 +231,7 @@ export default function App() {
   const marina = currentPlayer.marina
   const timeLabel = marina.period === 'morning' ? '08:00' : marina.period === 'day' ? '13:00' : marina.period === 'evening' ? '19:00' : '23:00'
   const periodLabel = marina.period === 'morning' ? 'Доброе утро' : marina.period === 'day' ? 'Добрый день' : marina.period === 'evening' ? 'Добрый вечер' : 'Спокойной ночи'
-  const marinaImage = `/marina/v2/${activeVisual}.webp`
+  const marinaImage = activeVisual === 'happy' ? '/marina/happy.PNG' : `/marina/v2/${activeVisual}.webp`
 
   return (
     <main className="game-shell">
