@@ -11,7 +11,7 @@
   - `frontend/public/marina/` and `frontend/public/marina/v2/` contain Marina image assets and manifests.
   - `frontend/Dockerfile`, `frontend/railway.json`, and `frontend/serve.json` describe the static frontend deployment.
 - `backend/` — FastAPI backend with PostgreSQL persistence.
-  - `backend/app/main.py` defines the FastAPI app, CORS middleware, health/root endpoints, Telegram auth endpoint, player endpoints, and thin chat/action route handlers.
+  - `backend/app/main.py` defines the FastAPI app, CORS middleware, health/root endpoints, Telegram auth endpoint, and thin chat/action route handlers.
   - `backend/app/game_services.py` contains chat/action gameplay rules, economy/stat mutations, and memory/event creation.
   - `backend/app/database.py` builds the async SQLAlchemy engine from `DATABASE_URL` and converts Railway-style `postgres://`/`postgresql://` URLs to `postgresql+asyncpg://`.
   - `backend/app/models.py` defines SQLAlchemy models for `users`, `marina_states`, `marina_memories`, and `idempotency_records`.
@@ -44,7 +44,6 @@
 - `POST /api/v1/auth/telegram` — validates Telegram init data and gets/creates a player.
 - `POST /api/v1/chat` — validates Telegram init data, creates a reply, mutates relationship/calm/trust/mood/experience, stores user and Marina memories, and supports optional idempotency.
 - `POST /api/v1/actions` — validates Telegram init data, applies one supported action, mutates game state/economy, stores an event memory, and supports optional idempotency.
-- `POST /api/v1/players` and `GET /api/v1/players/{telegram_id}` exist in code; they are not protected by Telegram init data validation in the current implementation.
 
 ## Authentication and identity
 - Telegram-authenticated flows use `validate_init_data()` in `backend/app/telegram_auth.py`.
@@ -91,8 +90,8 @@
 
 ## Current boundaries and known limitations
 - Documentation changes in TASK-004 do not change runtime behavior, API contracts, UI, game balance, or database schema.
-- Backend gameplay/economy logic for chat/actions is concentrated in `backend/app/game_services.py`; player helper endpoints remain in `backend/app/main.py`.
+- Backend gameplay/economy logic for chat/actions is concentrated in `backend/app/game_services.py`.
 - Frontend sends idempotency keys with chat/action mutation payloads.
-- `POST /api/v1/players` and `GET /api/v1/players/{telegram_id}` are not Telegram-authenticated in current code.
+- The former unauthenticated player helper endpoints `POST /api/v1/players` and `GET /api/v1/players/{telegram_id}` are removed; player creation/loading happens through Telegram-authenticated flows only.
 - Deployment does not automatically run Alembic migrations; operators must run/verify migrations separately.
 - PostgreSQL migration rollout needs staging/production-like validation.

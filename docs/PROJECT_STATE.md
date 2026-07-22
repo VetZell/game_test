@@ -20,7 +20,7 @@
 - Production CORS origins are read from `CORS_ORIGINS`; localhost origins are denied by default and added only when `ENVIRONMENT`/`APP_ENV` explicitly selects a local/development/test environment.
 - Economy-changing chat and action requests support optional idempotency keys backed by persisted idempotency records with request fingerprints; reusing a key with a different payload returns HTTP 409.
 - Telegram authentication is enforced for `/api/v1/auth/telegram`, `/api/v1/chat`, and `/api/v1/actions` through `TELEGRAM_BOT_TOKEN` validation.
-- `POST /api/v1/players` and `GET /api/v1/players/{telegram_id}` exist in code and are not Telegram-authenticated in the current implementation.
+- Former unauthenticated player helper endpoints `POST /api/v1/players` and `GET /api/v1/players/{telegram_id}` have been removed; player records are created or loaded through Telegram-authenticated auth/chat/action flows.
 
 ## Database and Migrations
 - `DATABASE_URL` configures the async database engine; `postgres://` and `postgresql://` URLs are converted to `postgresql+asyncpg://`.
@@ -44,4 +44,4 @@
 
 ## Known Issues
 - Full production migration execution still requires a real `DATABASE_URL` and PostgreSQL staging/production-like validation.
-- Player helper endpoints remain in `backend/app/main.py`; chat/action gameplay rules now live in `backend/app/game_services.py`.
+- Chat/action gameplay rules live in `backend/app/game_services.py`; public player helper endpoints are no longer exposed.

@@ -38,3 +38,8 @@
 - Added a frontend mutation payload helper that creates backend-compatible idempotency keys with `crypto.randomUUID()` and a local fallback.
 - Included `idempotency_key` in chat and action request JSON payloads without changing backend API, UI text, balance or schema.
 - Removed completed frontend idempotency-key rollout debt from project documentation.
+
+## TASK-007 — Player helper endpoint security
+- Removed unauthenticated `POST /api/v1/players` and `GET /api/v1/players/{telegram_id}` routes because frontend and backend flows use Telegram-authenticated auth/chat/action endpoints instead.
+- Added HTTP-level tests proving the former helper routes return `404`, cannot create/read other users, and authenticated auth/chat/action flows still work.
+- Removed the completed unauthenticated player helper endpoint debt from project documentation.

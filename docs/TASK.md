@@ -4,7 +4,7 @@
 TASK-007
 
 ## Status
-READY
+DONE
 
 ## Priority
 High
