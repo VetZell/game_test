@@ -33,3 +33,8 @@
 - Moved chat reply/state/memory logic and action economy/state/event logic from FastAPI handlers into `backend/app/game_services.py` without changing API contracts or game balance.
 - Added service-level tests covering chat behavior, all supported actions, state mutations and memory/event creation.
 - Kept idempotency behavior covered by existing replay/conflict tests and updated architecture/project documentation.
+
+## TASK-006 — Frontend idempotency keys
+- Added a frontend mutation payload helper that creates backend-compatible idempotency keys with `crypto.randomUUID()` and a local fallback.
+- Included `idempotency_key` in chat and action request JSON payloads without changing backend API, UI text, balance or schema.
+- Removed completed frontend idempotency-key rollout debt from project documentation.
