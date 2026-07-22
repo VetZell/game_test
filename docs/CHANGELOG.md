@@ -49,3 +49,8 @@
 - Updated root and backend Dockerfiles to include Alembic config, migration revisions and backend scripts in supported backend runtime images.
 - Added static tests proving Alembic assets are copied, migration command is separate/upgrade-only, and API startup does not run hidden migrations.
 - Updated deployment documentation to separate migration, API start/deploy, health check and safe application rollback boundaries.
+
+## TASK-009 — Frontend idempotency payload tests
+- Added Vitest as a lightweight frontend unit-test runner with a non-watch `npm test -- --run` workflow.
+- Added unit tests for idempotency key generation, `crypto.randomUUID()` usage, fallback behavior, field preservation, and stable reuse of constructed mutation payloads.
+- Updated frontend/project documentation to record the tested mutation payload behavior without changing UI, backend API, gameplay, or database schema.
