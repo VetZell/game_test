@@ -4,7 +4,7 @@
 TASK-005
 
 ## Status
-READY
+DONE
 
 ## Priority
 Medium
