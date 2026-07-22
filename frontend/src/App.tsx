@@ -31,18 +31,17 @@ type ActionResponse = { message: string; player: Player }
 type ChatResponse = { reply: string; emotion: string; remembered?: string | null; player: Player }
 type ChatLine = { role: 'user' | 'marina'; text: string }
 type MarinaEmotion = 'neutral' | 'smile' | 'happy' | 'sad' | 'sleepy' | 'surprised' | 'thoughtful' | 'shy'
-type MarinaVisual = MarinaEmotion | 'coffee' | 'breakfast' | 'kiss' | 'stretch' | 'cat'
+type MarinaVisual = MarinaEmotion | 'coffee' | 'breakfast' | 'kiss' | 'stretch' | 'cat' | 'movie' | 'walk' | 'talk'
 
-const APP_VERSION = '1.2.0-new-portrait'
+const APP_VERSION = '1.3.0-actions-v2'
 const API_URL = (import.meta.env.VITE_API_URL || 'https://web-production-9b804.up.railway.app').replace(/\/$/, '')
-const MAIN_PORTRAIT = '/marina/B8C4A0C3-3A7D-454C-BA75-17D1C6AF9278.png'
 
 const actions = [
   { id: 'coffee', title: 'Выпить кофе', reward: '+10 энергии · +5 настроения', icon: Coffee, visual: 'coffee' as MarinaVisual, duration: 3600 },
   { id: 'breakfast', title: 'Позавтракать', reward: '+15 сытости · +5 любви', icon: Utensils, visual: 'breakfast' as MarinaVisual, duration: 3800 },
   { id: 'kind_words', title: 'Сказать тёплые слова', reward: '+10 любви · +10 настроения', icon: Mail, visual: 'kiss' as MarinaVisual, duration: 3200 },
-  { id: 'walk', title: 'Пойти на прогулку', reward: '+15 энергии · +5 спокойствия', icon: Footprints, visual: 'stretch' as MarinaVisual, duration: 3500 },
-  { id: 'movie', title: 'Посмотреть фильм', reward: '+10 настроения · +5 спокойствия', icon: Film, visual: 'cat' as MarinaVisual, duration: 3800 },
+  { id: 'walk', title: 'Пойти на прогулку', reward: '+15 энергии · +5 спокойствия', icon: Footprints, visual: 'walk' as MarinaVisual, duration: 4200 },
+  { id: 'movie', title: 'Посмотреть фильм', reward: '+10 настроения · +5 спокойствия', icon: Film, visual: 'movie' as MarinaVisual, duration: 4200 },
 ]
 
 const emotionLabels: Record<MarinaEmotion, string> = {
@@ -191,6 +190,7 @@ export default function App() {
     setChatInput('')
     setChatBusy(true)
     setError(null)
+    showVisual('talk', 2600)
     try {
       const response = await fetch(`${API_URL}/api/v1/chat`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -231,7 +231,7 @@ export default function App() {
   const marina = currentPlayer.marina
   const timeLabel = marina.period === 'morning' ? '08:00' : marina.period === 'day' ? '13:00' : marina.period === 'evening' ? '19:00' : '23:00'
   const periodLabel = marina.period === 'morning' ? 'Доброе утро' : marina.period === 'day' ? 'Добрый день' : marina.period === 'evening' ? 'Добрый вечер' : 'Спокойной ночи'
-  const marinaImage = activeVisual === 'neutral' ? MAIN_PORTRAIT : `/marina/${activeVisual}.webp`
+  const marinaImage = `/marina/v2/${activeVisual}.webp`
 
   return (
     <main className="game-shell">
@@ -259,11 +259,14 @@ export default function App() {
 
         <div className="speech-bubble"><div className="speech-title"><Heart size={17}/><strong>Марина</strong></div><p>{message}</p></div>
         <aside className="wish-card"><strong>Сегодня Марина хочет:</strong><span>🌳 Прогуляться в парке</span><span>🎬 Посмотреть фильм</span><span>☕ Выпить кофе вместе</span></aside>
-        <button type="button" className="talk-button" onClick={() => setChatOpen(true)}><MessageCircle size={22}/><span>Поговорить<small>Марина помнит диалог</small></span></button>
+        <button type="button" className="talk-button" onClick={() => { showVisual('talk', 2200); setChatOpen(true) }}><MessageCircle size={22}/><span>Поговорить<small>Марина помнит диалог</small></span></button>
       </section>
 
       <section className="action-section"><h2>Чем займёмся?</h2><div className="action-grid">{actions.map(({ id, title, reward, icon: Icon, visual, duration }) => (
-        <article className="action-card" key={id}><div className="action-art"><img src={`/marina/${visual}.webp`} alt={title} loading="lazy"/><span className="action-icon"><Icon size={21}/></span></div><strong>{title}</strong><small>{reward}</small><button type="button" disabled={busyAction !== null} onClick={() => void performAction(id, visual, duration)}>{busyAction === id ? 'Марина занята…' : 'Выбрать'}</button></article>
+        <button className="action-card" type="button" key={id} disabled={busyAction !== null} onClick={() => void performAction(id, visual, duration)}>
+          <div className="action-art"><img src={`/marina/v2/${visual}.webp`} alt={title} loading="lazy"/><span className="action-icon"><Icon size={21}/></span></div>
+          <strong>{busyAction === id ? 'Марина занята…' : title}</strong><small>{reward}</small>
+        </button>
       ))}</div>{error && <div className="error-card">{error}</div>}<small className="version">{APP_VERSION} · опыт {currentPlayer.experience}</small></section>
 
       <nav className="bottom-nav"><button type="button" className="active"><Home size={23}/><span>Главная</span></button><button type="button"><ShoppingBag size={23}/><span>Магазин</span></button><button type="button"><Shirt size={23}/><span>Гардероб</span></button><button type="button"><Sofa size={23}/><span>Комната</span></button><button type="button"><Trophy size={23}/><span>Достижения</span></button></nav>
