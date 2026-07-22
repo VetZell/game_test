@@ -1,11 +1,10 @@
 # Technical Debt
 
 ## High
-- Verify whether database schema management still relies on runtime `create_all()` and introduce Alembic if required.
+- Run the Alembic baseline upgrade and irreversible-downgrade failure path against a staging/production-like PostgreSQL database copy before production rollout; SQLite coverage verifies the existing-schema and data-preservation paths, but PostgreSQL rollout still needs environment-specific validation.
 
 ## Medium
-- Verify production CORS restrictions.
-- Verify idempotency for economy-changing requests.
+- Decide whether optional idempotency keys should become mandatory for economy-changing production clients after frontend/client coordination.
 - Verify documentation against the current codebase.
 
 ## Low
