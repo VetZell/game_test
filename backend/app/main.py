@@ -177,22 +177,3 @@ async def perform_action(
         response_model=GameActionResponse,
         operation=operation,
     )
-
-
-@app.post("/api/v1/players", response_model=PlayerResponse, status_code=status.HTTP_201_CREATED)
-async def create_or_get_player(
-    payload: PlayerCreate,
-    session: AsyncSession = Depends(get_session),
-) -> User:
-    return await get_or_create_player(payload, session)
-
-
-@app.get("/api/v1/players/{telegram_id}", response_model=PlayerResponse)
-async def get_player(
-    telegram_id: int,
-    session: AsyncSession = Depends(get_session),
-) -> User:
-    user = await session.scalar(player_query(telegram_id))
-    if user is None:
-        raise HTTPException(status_code=404, detail="Player not found")
-    return user
