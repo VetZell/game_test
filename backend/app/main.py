@@ -1,4 +1,3 @@
-import os
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, HTTPException, status
@@ -8,7 +7,8 @@ from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from .database import Base, engine, get_session
+from .database import engine, get_session
+from .idempotency import run_idempotent
 from .models import MarinaMemory, MarinaState, User
 from .schemas import (
     GameActionRequest,
@@ -18,6 +18,7 @@ from .schemas import (
     PlayerCreate,
     PlayerResponse,
 )
+from .settings import get_allowed_origins
 from .telegram_auth import TelegramAuthError, validate_init_data
 
 
@@ -27,9 +28,6 @@ class TelegramLoginRequest(BaseModel):
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    if engine is not None:
-        async with engine.begin() as connection:
-            await connection.run_sync(Base.metadata.create_all)
     yield
     if engine is not None:
         await engine.dispose()
@@ -37,22 +35,10 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(title="Day Marina API", version="0.8.0", lifespan=lifespan)
 
-allowed_origins = {
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "https://gametest-production-9fef.up.railway.app",
-}
-allowed_origins.update(
-    origin.strip().rstrip("/")
-    for origin in os.getenv("CORS_ORIGINS", "").split(",")
-    if origin.strip()
-)
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=sorted(allowed_origins),
-    allow_origin_regex=r"https://.*\.up\.railway\.app",
-    allow_credentials=False,
+    allow_origins=get_allowed_origins(),
+    allow_credentials=True,
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
@@ -176,37 +162,43 @@ async def chat_with_marina(
             session,
         )
 
-    previous = await session.scalar(
-        select(MarinaMemory)
-        .where(MarinaMemory.user_id == user.id, MarinaMemory.role == "user")
-        .order_by(MarinaMemory.created_at.desc())
-        .limit(1)
-    )
-    remembered = previous.content if previous else None
-    reply, emotion, changes = build_marina_reply(payload.message, user, remembered)
+    async def operation() -> MarinaChatResponse:
+        previous = await session.scalar(
+            select(MarinaMemory)
+            .where(MarinaMemory.user_id == user.id, MarinaMemory.role == "user")
+            .order_by(MarinaMemory.created_at.desc())
+            .limit(1)
+        )
+        remembered = previous.content if previous else None
+        reply, emotion, changes = build_marina_reply(payload.message, user, remembered)
 
-    marina = user.marina
-    marina.love = clamp(marina.love + changes["love"])
-    marina.mood = clamp(marina.mood + changes["mood"])
-    marina.trust = clamp(marina.trust + changes["trust"])
-    marina.calm = clamp(marina.calm + changes["calm"])
-    user.experience += 2
+        marina = user.marina
+        marina.love = clamp(marina.love + changes["love"])
+        marina.mood = clamp(marina.mood + changes["mood"])
+        marina.trust = clamp(marina.trust + changes["trust"])
+        marina.calm = clamp(marina.calm + changes["calm"])
+        user.experience += 2
 
-    session.add_all([
-        MarinaMemory(user_id=user.id, role="user", content=payload.message, emotion="player"),
-        MarinaMemory(user_id=user.id, role="marina", content=reply, emotion=emotion),
-    ])
-    await session.commit()
+        session.add_all([
+            MarinaMemory(user_id=user.id, role="user", content=payload.message, emotion="player"),
+            MarinaMemory(user_id=user.id, role="marina", content=reply, emotion=emotion),
+        ])
+        await session.flush()
 
-    refreshed = await session.scalar(player_query(telegram_user.id))
-    if refreshed is None:
-        raise HTTPException(status_code=500, detail="Не удалось сохранить разговор")
+        return MarinaChatResponse(
+            reply=reply,
+            emotion=emotion,
+            remembered=remembered,
+            player=PlayerResponse.model_validate(user),
+        )
 
-    return MarinaChatResponse(
-        reply=reply,
-        emotion=emotion,
-        remembered=remembered,
-        player=PlayerResponse.model_validate(refreshed),
+    return await run_idempotent(
+        session=session,
+        user=user,
+        endpoint="chat",
+        key=payload.idempotency_key,
+        response_model=MarinaChatResponse,
+        operation=operation,
     )
 
 
@@ -227,65 +219,72 @@ async def perform_action(
             session,
         )
 
-    marina = user.marina
-    messages = {
-        "hug": "Марина прижалась к тебе и улыбнулась ❤️",
-        "coffee": "Спасибо! Такой кофе — идеальное начало утра ☕",
-        "breakfast": "Как вкусно! Теперь я сытая и счастливая 🥞",
-        "kind_words": "Ты умеешь говорить именно то, что мне нужно услышать 💌",
-        "walk": "Свежий воздух пошёл нам на пользу. Мне стало спокойнее 🌿",
-        "movie": "Давай устроимся поудобнее и посмотрим что-нибудь вместе 🎬",
-        "talk": "Мне стало намного легче после нашего разговора.",
-    }
+    async def operation() -> GameActionResponse:
+        marina = user.marina
+        messages = {
+            "hug": "Марина прижалась к тебе и улыбнулась ❤️",
+            "coffee": "Спасибо! Такой кофе — идеальное начало утра ☕",
+            "breakfast": "Как вкусно! Теперь я сытая и счастливая 🥞",
+            "kind_words": "Ты умеешь говорить именно то, что мне нужно услышать 💌",
+            "walk": "Свежий воздух пошёл нам на пользу. Мне стало спокойнее 🌿",
+            "movie": "Давай устроимся поудобнее и посмотрим что-нибудь вместе 🎬",
+            "talk": "Мне стало намного легче после нашего разговора.",
+        }
 
-    if payload.action == "hug":
-        marina.love = clamp(marina.love + 8)
-        marina.attachment = clamp(marina.attachment + 4)
-        marina.mood = clamp(marina.mood + 3)
-        user.experience += 5
-    elif payload.action == "coffee":
-        marina.energy = clamp(marina.energy + 10)
-        marina.mood = clamp(marina.mood + 5)
-        user.coins = max(0, user.coins - 15)
-        user.experience += 4
-    elif payload.action == "breakfast":
-        marina.hunger = clamp(marina.hunger + 15)
-        marina.love = clamp(marina.love + 5)
-        user.coins = max(0, user.coins - 25)
-        user.experience += 6
-    elif payload.action == "kind_words":
-        marina.love = clamp(marina.love + 10)
-        marina.mood = clamp(marina.mood + 10)
-        marina.trust = clamp(marina.trust + 3)
-        user.experience += 7
-    elif payload.action == "walk":
-        marina.energy = clamp(marina.energy + 15)
-        marina.calm = clamp(marina.calm + 5)
-        marina.mood = clamp(marina.mood + 4)
-        user.experience += 7
-    elif payload.action == "movie":
-        marina.mood = clamp(marina.mood + 10)
-        marina.calm = clamp(marina.calm + 5)
-        marina.attachment = clamp(marina.attachment + 2)
-        user.coins = max(0, user.coins - 20)
-        user.experience += 6
-    elif payload.action == "talk":
-        marina.mood = clamp(marina.mood + 10)
-        marina.trust = clamp(marina.trust + 5)
-        marina.calm = clamp(marina.calm + 4)
-        user.experience += 6
-    else:
-        raise HTTPException(status_code=400, detail="Неизвестное действие")
+        if payload.action == "hug":
+            marina.love = clamp(marina.love + 8)
+            marina.attachment = clamp(marina.attachment + 4)
+            marina.mood = clamp(marina.mood + 3)
+            user.experience += 5
+        elif payload.action == "coffee":
+            marina.energy = clamp(marina.energy + 10)
+            marina.mood = clamp(marina.mood + 5)
+            user.coins = max(0, user.coins - 15)
+            user.experience += 4
+        elif payload.action == "breakfast":
+            marina.hunger = clamp(marina.hunger + 15)
+            marina.love = clamp(marina.love + 5)
+            user.coins = max(0, user.coins - 25)
+            user.experience += 6
+        elif payload.action == "kind_words":
+            marina.love = clamp(marina.love + 10)
+            marina.mood = clamp(marina.mood + 10)
+            marina.trust = clamp(marina.trust + 3)
+            user.experience += 7
+        elif payload.action == "walk":
+            marina.energy = clamp(marina.energy + 15)
+            marina.calm = clamp(marina.calm + 5)
+            marina.mood = clamp(marina.mood + 4)
+            user.experience += 7
+        elif payload.action == "movie":
+            marina.mood = clamp(marina.mood + 10)
+            marina.calm = clamp(marina.calm + 5)
+            marina.attachment = clamp(marina.attachment + 2)
+            user.coins = max(0, user.coins - 20)
+            user.experience += 6
+        elif payload.action == "talk":
+            marina.mood = clamp(marina.mood + 10)
+            marina.trust = clamp(marina.trust + 5)
+            marina.calm = clamp(marina.calm + 4)
+            user.experience += 6
+        else:
+            raise HTTPException(status_code=400, detail="Неизвестное действие")
 
-    session.add(MarinaMemory(user_id=user.id, role="event", content=messages[payload.action], emotion="event"))
-    await session.commit()
-    refreshed = await session.scalar(player_query(telegram_user.id))
-    if refreshed is None:
-        raise HTTPException(status_code=500, detail="Не удалось сохранить действие")
+        session.add(MarinaMemory(user_id=user.id, role="event", content=messages[payload.action], emotion="event"))
+        await session.flush()
 
-    return GameActionResponse(
-        message=messages[payload.action],
-        player=PlayerResponse.model_validate(refreshed),
+        return GameActionResponse(
+            message=messages[payload.action],
+            player=PlayerResponse.model_validate(user),
+        )
+
+    return await run_idempotent(
+        session=session,
+        user=user,
+        endpoint="actions",
+        key=payload.idempotency_key,
+        response_model=GameActionResponse,
+        operation=operation,
     )
 
 

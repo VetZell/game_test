@@ -11,7 +11,10 @@
 
 ## Backend
 - FastAPI + PostgreSQL.
-- Telegram authentication and player/economy hardening were previously reported as implemented.
+- Runtime schema creation has been removed from the FastAPI lifespan; schema management is now represented by Alembic configuration and a baseline migration.
+- Production CORS origins are read from `CORS_ORIGINS`; local development origins are added only for local/development/test environments.
+- Economy-changing chat and action requests support optional idempotency keys backed by persisted idempotency records.
+- Telegram authentication remains in place for authenticated chat/action flows.
 
 ## Current Workflow
 - ChatGPT writes the active task into `docs/TASK.md`.
@@ -19,7 +22,7 @@
 - Codex writes results into `docs/REPORT.md`.
 
 ## Current Focus
-- Establish and validate the file-based development workflow.
+- Backend production readiness: migrations, CORS hardening and idempotency for economy-changing requests.
 
 ## Known Issues
-- The actual current code state must be re-audited before relying on older task reports.
+- Full production migration execution still requires a real `DATABASE_URL` in the deployment environment.

@@ -38,6 +38,7 @@ class PlayerResponse(BaseModel):
 class GameActionRequest(BaseModel):
     init_data: str
     action: str
+    idempotency_key: str | None = Field(default=None, max_length=128)
 
 
 class GameActionResponse(BaseModel):
@@ -48,6 +49,7 @@ class GameActionResponse(BaseModel):
 class MarinaChatRequest(BaseModel):
     init_data: str
     message: str = Field(min_length=1, max_length=500)
+    idempotency_key: str | None = Field(default=None, max_length=128)
 
 
 class MarinaChatResponse(BaseModel):
