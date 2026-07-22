@@ -1,60 +1,53 @@
 # Task Report
 
 ## Task
-TASK-001 — Backend production-readiness audit and targeted hardening.
+TASK-002 — Исправления по ревью PR #2.
 
 ## Status
 SUCCESS
 
 ## Summary
-- Audited backend schema management, CORS settings, and state/economy-changing endpoints.
-- Confirmed `Base.metadata.create_all()` was running during FastAPI lifespan startup and removed runtime schema creation from application startup.
-- Added Alembic configuration plus a baseline migration for current backend tables: `users`, `marina_states`, `marina_memories`, and `idempotency_records`.
-- Confirmed previous CORS settings included a Railway wildcard regex and hard-coded production origin; replaced this with explicit `CORS_ORIGINS` parsing and local-only development defaults.
-- Confirmed `/api/v1/chat` changes player experience and Marina state, and `/api/v1/actions` changes player experience, coins, and Marina state.
-- Added optional `idempotency_key` support for chat and action requests without removing or renaming existing request fields.
-- Added persisted idempotency records with a per-user/per-endpoint/per-key uniqueness constraint.
-- Added backend tests for CORS parsing, local/production origin behavior, absence of runtime `create_all()`, baseline migration coverage, and idempotency replay behavior.
+- Read the PR #2 review comment and addressed all four blocking items.
+- Made the Alembic baseline migration safe for both empty databases and already-existing schemas created by the former runtime `create_all()` path.
+- Added `docs/ALEMBIC_BOOTSTRAP.md` with rollout and verification steps for new and existing databases.
+- Made CORS safe by default: when `ENVIRONMENT`/`APP_ENV` is absent, the backend now behaves as production and does not auto-allow localhost origins.
+- Added request fingerprints to persisted idempotency records.
+- Reusing the same idempotency key with a different request payload now returns HTTP 409 instead of replaying the old response.
+- Added tests for safe CORS defaults, idempotency payload conflicts, and Alembic upgrade against an existing create_all-style schema.
 - Updated project state, technical debt, changelog, and task status.
 
 ## Files Changed
-- `backend/app/__init__.py` — marks `app` as an importable package for tests and tooling.
-- `backend/app/main.py` — removes startup `create_all()`, applies hardened CORS settings, and wraps chat/action mutations with idempotency handling.
-- `backend/app/models.py` — adds the `idempotency_records` table model and uniqueness constraint.
-- `backend/app/schemas.py` — adds optional `idempotency_key` fields to chat and action request schemas.
-- `backend/app/settings.py` — adds environment-aware CORS origin parsing.
-- `backend/app/idempotency.py` — adds reusable persisted idempotency execution helper.
-- `backend/alembic.ini` — adds Alembic configuration.
-- `backend/alembic/env.py` — wires Alembic to SQLAlchemy metadata and async database URLs.
-- `backend/alembic/versions/20260722_0001_baseline.py` — adds baseline schema migration.
-- `backend/requirements.txt` — adds Alembic and test dependencies.
-- `backend/pytest.ini` — sets pytest-asyncio fixture loop scope explicitly.
-- `backend/tests/conftest.py` — ensures backend package imports resolve during pytest collection.
-- `backend/tests/test_settings.py` — covers CORS origin parsing and environment behavior.
-- `backend/tests/test_static_backend_audit.py` — verifies startup no longer runs `create_all()` and the baseline migration names current tables.
-- `backend/tests/test_idempotency.py` — verifies repeated idempotent execution returns the stored response without repeating mutation logic.
-- `docs/PROJECT_STATE.md` — updates backend state to match verified changes.
-- `docs/TECH_DEBT.md` — removes verified fixed audit items and records remaining migration/client rollout debt.
-- `docs/CHANGELOG.md` — records TASK-001 backend changes.
-- `docs/TASK.md` — changes TASK-001 status from `READY` to `DONE`.
-- `docs/REPORT.md` — replaces the report with this TASK-001 completion report.
+- `backend/app/settings.py` — changes environment default from development to production and keeps localhost origins only for explicitly local/development/test environments.
+- `backend/app/idempotency.py` — adds deterministic request fingerprinting and same-key/different-payload conflict handling.
+- `backend/app/main.py` — passes endpoint-specific request fingerprints into idempotent chat and action execution.
+- `backend/app/models.py` — adds `request_fingerprint` to persisted idempotency records.
+- `backend/alembic/versions/20260722_0001_baseline.py` — makes baseline migration inspect existing schema, skip already-existing core tables, create missing idempotency infrastructure, and add `request_fingerprint` when needed.
+- `backend/tests/test_settings.py` — covers production-safe default environment behavior and explicit development localhost behavior.
+- `backend/tests/test_idempotency.py` — covers idempotent replay and HTTP 409 on same-key/different-payload conflict.
+- `backend/tests/test_static_backend_audit.py` — checks baseline migration contains existing-table transition helpers and request fingerprint support.
+- `backend/tests/test_alembic_existing_database.py` — verifies `alembic upgrade head` succeeds against an existing create_all-style schema and records the baseline revision.
+- `docs/ALEMBIC_BOOTSTRAP.md` — documents migration bootstrap/verification steps for new and existing deployments.
+- `docs/PROJECT_STATE.md` — updates backend state to reflect safe CORS defaults, existing-schema Alembic transition, and fingerprinted idempotency.
+- `docs/TECH_DEBT.md` — narrows remaining migration debt to PostgreSQL staging/production-like validation.
+- `docs/CHANGELOG.md` — records TASK-002 review fixes.
+- `docs/TASK.md` — changes TASK-002 status from READY to DONE.
+- `docs/REPORT.md` — replaces the report with this TASK-002 completion report.
 
 ## Problems Found
-- Runtime `Base.metadata.create_all()` was used during FastAPI lifespan startup, which can make application startup an implicit schema-management mechanism.
-- Production CORS configuration allowed any Railway app subdomain via `allow_origin_regex` and carried a hard-coded production origin in code.
-- `/api/v1/chat` and `/api/v1/actions` mutate persisted player/Marina/economy state but did not provide replay protection for duplicate client submissions.
-- No backend tests existed for the audited behavior.
+- Review confirmed the first baseline migration would fail on existing production databases where runtime `create_all()` had already created tables.
+- Review confirmed CORS was unsafe by default because absent `ENVIRONMENT` implied development and allowed localhost origins.
+- Review confirmed idempotency keys were not bound to request payloads, so a reused key with different message/action replayed an old response instead of returning a conflict.
+- Review noted `docs/REPORT.md` still contained placeholder commit/PR text from TASK-001.
 
 ## Problems Fixed
-- Removed runtime schema creation from FastAPI startup.
-- Added Alembic configuration and a baseline migration compatible with the current SQLAlchemy models.
-- Replaced broad/hard-coded production CORS behavior with explicit origin parsing from `CORS_ORIGINS`; local origins are only added in local/development/test environments.
-- Added optional persisted idempotency keys for chat and action requests.
-- Added automated tests covering the changed behavior.
+- Baseline migration now uses SQLAlchemy inspection to handle existing tables and indexes instead of blindly creating every table.
+- Existing-schema upgrade path is covered by a test that creates a pre-Alembic schema, runs `alembic upgrade head`, verifies `idempotency_records.request_fingerprint`, and verifies `alembic_version` is `20260722_0001`.
+- CORS now defaults to production/fail-closed behavior unless a local/development/test environment is explicitly configured.
+- Idempotency records now store SHA-256 request fingerprints; same endpoint/user/key with a mismatched fingerprint raises HTTP 409.
+- REPORT now names PR #2 and will contain the actual final commit SHA after commit creation.
 
 ## Tests
-- `cd backend && pip install -r requirements.txt` — PASS; dependencies installed, with pip warning about running as root.
-- `cd backend && pytest -q` — PASS; 6 tests passed.
+- `cd backend && pytest -q` — PASS; 9 tests passed.
 - `cd backend && python -m compileall .` — PASS; backend Python files compiled successfully.
 - `cd backend && python -c 'from app.main import app; print(app.title, app.version)'` — PASS; FastAPI app imported and printed `Day Marina API 0.8.0`.
 - `cd backend && alembic heads` — PASS; reported `20260722_0001 (head)`.
@@ -62,16 +55,17 @@ SUCCESS
 - `git diff --check` — PASS; no whitespace errors found.
 
 ## Risks
-- `DATABASE_URL` is required to run Alembic migrations online; this environment did not include a real PostgreSQL URL, so migration application against PostgreSQL must be run in staging/production with the real database URL.
-- The new idempotency key is optional to avoid breaking existing clients. Duplicate requests without `idempotency_key` will continue to mutate state as before.
-- Concurrent duplicate requests with the same idempotency key are constrained by the database uniqueness rule; clients should retry on conflict if they hit an in-flight race.
+- SQLite-based test coverage verifies the existing-schema transition logic in CI/local environment, but the final production rollout should still be rehearsed against a PostgreSQL staging or production-like database copy.
+- Existing idempotency records created before fingerprint support, if any, receive an empty migration default and will conflict with new same-key requests that include a real fingerprint; clients should use fresh keys after deployment.
+- Duplicate requests without `idempotency_key` remain non-idempotent by design to preserve backwards compatibility.
 
 ## Technical Debt
-- Remaining debt is documented in `docs/TECH_DEBT.md`: run the Alembic baseline against a production-like PostgreSQL database and decide whether idempotency keys should become mandatory after client coordination.
+- Remaining debt is documented in `docs/TECH_DEBT.md`: run the Alembic baseline against a staging/production-like PostgreSQL database copy before production rollout and decide whether idempotency keys should become mandatory after client coordination.
 
 ## Safe To Merge
 YES.
 
 ## Commit / PR
-- Commit: see assistant final response for final HEAD SHA.
-- PR: metadata created with make_pr tool; no URL or PR number is returned by the tool.
+- Previous TASK-001 commit: `0502868eccfcea6a53502f9c2d7cf54d3e445fe9`.
+- TASK-002 implementation commit: `22db63968b55fbb8445951ed41018bbd4a44d55f`.
+- PR: #2 — https://github.com/VetZell/game_test/pull/2
