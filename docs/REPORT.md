@@ -58,5 +58,5 @@ SUCCESS
 YES.
 
 ## Commit / PR
-- Commit: pending until commit is created.
-- PR: pending until PR is created.
+- Implementation commit: `1333c356e52a0199964a6bb68cbe3c6aab5fe792`.
+- PR: #5 — https://github.com/VetZell/game_test/pull/5
