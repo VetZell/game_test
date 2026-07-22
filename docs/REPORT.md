@@ -70,5 +70,4 @@ YES.
 
 ## Commit / PR
 - Implementation commit: `1f611c5d42764923cf956616e72243320742c081`.
-- Report/status commit: pending until this report is committed and pushed.
 - PR: #7 — https://github.com/VetZell/game_test/pull/7
