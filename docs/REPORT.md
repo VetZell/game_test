@@ -44,7 +44,7 @@ SUCCESS
 - Existing-schema upgrade path is covered by a test that creates a pre-Alembic schema, runs `alembic upgrade head`, verifies `idempotency_records.request_fingerprint`, and verifies `alembic_version` is `20260722_0001`.
 - CORS now defaults to production/fail-closed behavior unless a local/development/test environment is explicitly configured.
 - Idempotency records now store SHA-256 request fingerprints; same endpoint/user/key with a mismatched fingerprint raises HTTP 409.
-- REPORT now names PR #2 and will contain the actual final commit SHA after commit creation.
+- REPORT now names PR #2 and includes the factual TASK-002 implementation commit SHA.
 
 ## Tests
 - `cd backend && pytest -q` — PASS; 9 tests passed.
