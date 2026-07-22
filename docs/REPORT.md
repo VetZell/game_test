@@ -63,5 +63,5 @@ SUCCESS
 YES.
 
 ## Commit / PR
-- Implementation commit: TBD until final commit is created.
-- PR: TBD until pull request is created.
+- Implementation commit: `bad20a87978f7d0e7775274a8ad698d97d4a70d1`.
+- PR: #10 — https://github.com/VetZell/game_test/pull/10
