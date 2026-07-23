@@ -4,7 +4,7 @@
 TASK-016
 
 ## Status
-READY
+DONE
 
 ## Priority
 High

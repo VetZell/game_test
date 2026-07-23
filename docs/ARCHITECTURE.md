@@ -40,8 +40,10 @@
 9. The action service mutates player/Marina state, persists event memories, and returns updated response models to the route handler. The day service advances `morning → day → evening → night → morning`, increments the day only after night, applies small clamped need deltas, and persists one event memory.
 
 ## Frontend API configuration
-- The frontend API base URL is `VITE_API_URL` when set.
-- If `VITE_API_URL` is absent, the current fallback is `https://web-production-9b804.up.railway.app`.
+- The frontend API base URL is centralized in `frontend/src/apiConfig.ts`: `VITE_API_URL` is used when set, otherwise the safe fallback remains `https://web-production-9b804.up.railway.app`.
+- `apiConfig.ts` normalizes trailing slashes and every auth/chat/action/day-advance request builds its endpoint through `apiEndpoint()`, preventing double-slash path drift.
+- Production frontend/backend connectivity requires the backend runtime `CORS_ORIGINS` to contain the exact frontend origin; otherwise browser/Telegram WebView preflight fails before an HTTP response reaches the app and the frontend correctly classifies it as a network failure.
+- Action request failures log safe developer diagnostics only: frontend origin, API base URL, endpoint path, method, elapsed time, HTTP status when present and error category/name/message, without Telegram `init_data` or secrets.
 - Local Vite development runs on port `5173`.
 
 ## Backend routes

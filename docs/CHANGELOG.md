@@ -85,3 +85,9 @@
 - Added the Rollup Linux x64 musl native package as a locked optional frontend dependency so Railway Alpine/Linux musl installs can resolve Rollup's native loader deterministically.
 - Added frontend Node/npm engine constraints and changed `frontend/Dockerfile` build install to `npm ci --include=dev --include=optional` before `npm run build`.
 - Documented the Railway frontend root/build expectations and post-deploy verification without adding a user-visible debug banner.
+
+## TASK-016 — Production frontend/backend connectivity diagnosis
+- Centralized frontend API base URL normalization and endpoint construction in `frontend/src/apiConfig.ts` for auth, chat, action and day-advance requests.
+- Added safe structured action request diagnostics that distinguish network failures from HTTP responses without logging Telegram `init_data` or secrets.
+- Added frontend API URL/action diagnostics tests and backend CORS preflight tests for configured and unconfigured production origins.
+- Documented that production backend `CORS_ORIGINS` must include the exact frontend origin; current public backend preflight rejection explains Telegram WebView network/fetch failures despite `/health` being reachable.

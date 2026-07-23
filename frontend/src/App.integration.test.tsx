@@ -3,9 +3,10 @@ import '@testing-library/jest-dom/vitest'
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { DEFAULT_API_BASE_URL } from './apiConfig'
 import App from './App'
 
-const API_URL = 'https://web-production-9b804.up.railway.app'
+const API_URL = DEFAULT_API_BASE_URL
 const INIT_DATA = 'query_id=test&user=%7B%22id%22%3A42%7D&auth_date=1784678400&hash=test'
 
 type MockPlayer = {
@@ -388,7 +389,14 @@ describe('App Telegram integration flows', () => {
     expectExperience(120)
     await waitFor(() => expect(coffeeButton).not.toBeDisabled())
     expect(screen.getByRole('button', { name: 'Повторить' })).toBeInTheDocument()
-    expect(consoleSpy).toHaveBeenCalledWith('Action request failed', expect.objectContaining({ endpoint: '/api/v1/actions' }))
+    expect(consoleSpy).toHaveBeenCalledWith('Action request failed', expect.objectContaining({
+      frontendOrigin: 'http://localhost:3000',
+      apiBaseUrl: API_URL,
+      endpoint: `${API_URL}/api/v1/actions`,
+      method: 'POST',
+      category: 'network',
+      errorName: 'TypeError',
+    }))
   })
 
   it('maps action HTTP auth and server errors to friendly messages', async () => {
@@ -413,7 +421,8 @@ describe('App Telegram integration flows', () => {
     expect(await screen.findByText('Сервер временно недоступен. Попробуйте ещё раз.')).toBeInTheDocument()
     expect(screen.queryByText('<html>server down</html>')).not.toBeInTheDocument()
     expectExperience(120)
-    expect(consoleSpy).toHaveBeenCalled()
+    expect(consoleSpy).toHaveBeenCalledWith('Action request failed', expect.objectContaining({ category: 'http', status: 401 }))
+    expect(consoleSpy).toHaveBeenCalledWith('Action request failed', expect.objectContaining({ category: 'http', status: 503 }))
   })
 
   it('retries the last failed action with a new idempotency key and applies success once', async () => {
@@ -442,6 +451,7 @@ describe('App Telegram integration flows', () => {
     expect(fetchMock).toHaveBeenCalledTimes(3)
     expect(requestBody(fetchMock.mock.calls[1]).idempotency_key).toBe('integration-key-1')
     expect(requestBody(fetchMock.mock.calls[2]).idempotency_key).toBe('integration-key-2')
+    expect(fetchMock.mock.calls[2][0]).toBe(`${API_URL}/api/v1/actions`)
     expect(requestBody(fetchMock.mock.calls[2]).action).toBe('coffee')
     expect(screen.queryByRole('button', { name: 'Повторить' })).not.toBeInTheDocument()
     expect(consoleSpy).toHaveBeenCalledTimes(1)
@@ -469,7 +479,8 @@ describe('App Telegram integration flows', () => {
     expect(await screen.findByText('Действие сейчас выполнить нельзя.')).toBeInTheDocument()
     expect(screen.queryByText('validation detail')).not.toBeInTheDocument()
     expectExperience(120)
-    expect(consoleSpy).toHaveBeenCalled()
+    expect(consoleSpy).toHaveBeenCalledWith('Action request failed', expect.objectContaining({ category: 'http', status: 409 }))
+    expect(consoleSpy).toHaveBeenCalledWith('Action request failed', expect.objectContaining({ category: 'http', status: 422 }))
   })
 
 })
