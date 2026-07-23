@@ -17,6 +17,7 @@
 - TASK-013 frontend interface polish for emotion/action/day state hierarchy, accessibility, responsive safe-area layout and tests.
 - TASK-014 action mutation error recovery and retry behavior for safe user-facing failures.
 - TASK-015 reproducible Railway frontend build fix for Rollup Linux x64 musl optional package resolution.
+- TASK-016 production Frontend → Backend connectivity diagnosis: centralized API URL handling, safe action diagnostics and documented/covered CORS preflight requirements.
 
 ## Next
 1. Validate Alembic upgrade, explicit migration command, and irreversible-downgrade failure behavior against a PostgreSQL staging/production-like database copy.

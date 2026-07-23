@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
+import { API_BASE_URL, apiEndpoint, safeUrlForDiagnostics } from './apiConfig'
 import { createMutationPayload } from './mutationPayload'
 import {
   Coffee, Film, Footprints, Gem, Heart, Home, Mail,
@@ -34,11 +35,11 @@ type ChatResponse = { reply: string; emotion: string; remembered?: string | null
 type ChatLine = { role: 'user' | 'marina'; text: string }
 type LastFailedAction = { action: string; visual: MarinaVisual; duration: number }
 type ActionRequestError = Error & { status?: number; safeDetail?: string }
+type ActionErrorCategory = 'http' | 'network' | 'timeout' | 'unknown'
 type MarinaEmotion = 'neutral' | 'smile' | 'happy' | 'love' | 'caring' | 'sad' | 'sleepy' | 'surprised' | 'thoughtful' | 'shy'
 type MarinaVisual = 'neutral' | 'smile' | 'happy' | 'sad' | 'sleepy' | 'surprised' | 'thoughtful' | 'shy' | 'coffee' | 'breakfast' | 'kiss' | 'movie' | 'walk' | 'talk'
 
 const APP_VERSION = '1.3.1-happy-png'
-const API_URL = (import.meta.env.VITE_API_URL || 'https://web-production-9b804.up.railway.app').replace(/\/$/, '')
 
 const actions = [
   { id: 'coffee', title: 'Выпить кофе', reward: '+10 энергии · +5 настроения', cost: '15 монет', icon: Coffee, visual: 'coffee' as MarinaVisual, duration: 3600 },
@@ -106,14 +107,27 @@ function toActionRequestError(status: number, safeDetail?: string): ActionReques
   return error
 }
 
-function logActionError(endpoint: string, reason: unknown) {
+function classifyActionError(reason: unknown, status?: number): ActionErrorCategory {
+  if (status !== undefined) return 'http'
+  if (reason instanceof DOMException && reason.name === 'AbortError') return 'timeout'
+  if (reason instanceof TypeError) return 'network'
+  if (reason instanceof Error && /load failed|failed to fetch|network/i.test(reason.message)) return 'network'
+  return 'unknown'
+}
+
+function logActionError(endpoint: string, method: string, startedAt: number, reason: unknown) {
   const status = reason instanceof Error && 'status' in reason ? (reason as ActionRequestError).status : undefined
   const safeDetail = reason instanceof Error && 'safeDetail' in reason ? (reason as ActionRequestError).safeDetail : undefined
   console.error('Action request failed', {
-    endpoint,
+    frontendOrigin: window.location.origin,
+    apiBaseUrl: safeUrlForDiagnostics(API_BASE_URL),
+    endpoint: safeUrlForDiagnostics(endpoint),
+    method,
+    elapsedMs: Math.max(0, Math.round(performance.now() - startedAt)),
     status,
-    detail: safeDetail || (reason instanceof Error ? reason.message : 'unknown error'),
-    error: reason instanceof Error ? reason : undefined,
+    category: classifyActionError(reason, status),
+    errorName: reason instanceof Error ? reason.name : typeof reason,
+    errorMessage: safeDetail || (reason instanceof Error ? reason.message : 'unknown error'),
   })
 }
 
@@ -174,7 +188,7 @@ export default function App() {
         return
       }
       try {
-        const response = await fetch(`${API_URL}/api/v1/auth/telegram`, {
+        const response = await fetch(apiEndpoint('/api/v1/auth/telegram'), {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ init_data: initData }), cache: 'no-store',
         })
@@ -218,7 +232,9 @@ export default function App() {
     if (busyAction) return
     const initData = window.Telegram?.WebApp?.initData || ''
     if (!initData) return
-    const endpoint = `${API_URL}/api/v1/actions`
+    const endpoint = apiEndpoint('/api/v1/actions')
+    const method = 'POST'
+    const startedAt = performance.now()
     showVisual(visual, duration)
     setBusyAction(action)
     setError(null)
@@ -226,7 +242,7 @@ export default function App() {
     try {
       const payload = createMutationPayload({ init_data: initData, action })
       const response = await fetch(endpoint, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method, headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload), cache: 'no-store',
       })
       if (!response.ok) {
@@ -239,7 +255,7 @@ export default function App() {
       applyEmotion(deriveEmotion(result.player))
       window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success')
     } catch (reason) {
-      logActionError('/api/v1/actions', reason)
+      logActionError(endpoint, method, startedAt, reason)
       setError(actionErrorMessage(reason instanceof Error && 'status' in reason ? (reason as ActionRequestError).status : undefined, reason))
       setLastFailedAction({ action, visual, duration })
       actionActiveRef.current = false
@@ -265,7 +281,7 @@ export default function App() {
     setError(null)
     try {
       const payload = createMutationPayload({ init_data: initData })
-      const response = await fetch(`${API_URL}/api/v1/day/advance`, {
+      const response = await fetch(apiEndpoint('/api/v1/day/advance'), {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload), cache: 'no-store',
       })
@@ -296,7 +312,7 @@ export default function App() {
     showVisual('talk', 2600)
     try {
       const payload = createMutationPayload({ init_data: initData, message: text })
-      const response = await fetch(`${API_URL}/api/v1/chat`, {
+      const response = await fetch(apiEndpoint('/api/v1/chat'), {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload), cache: 'no-store',
       })

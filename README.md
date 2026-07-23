@@ -28,6 +28,21 @@ Frontend-сервис Railway должен использовать **Root Direc
 
 Короткая проверка нового deployment без debug-баннера: открыть Mini App после деплоя и убедиться, что доступно поведение TASK-014 — action error panel показывает безопасное сообщение и кнопку `Повторить`, а в footer остаётся текущая версия приложения.
 
+#### Frontend → Backend connectivity
+
+Для production Telegram Mini App нужны две несекретные переменные/настройки, согласованные между сервисами:
+
+```env
+# frontend service build variable
+VITE_API_URL=https://<backend-public-domain>
+
+# backend service runtime variable
+CORS_ORIGINS=https://<frontend-public-domain>
+ENVIRONMENT=production
+```
+
+`VITE_API_URL` должен быть HTTPS origin backend без query/secrets; frontend нормализует trailing slash и строит endpoints `/api/v1/auth/telegram`, `/api/v1/chat`, `/api/v1/actions` и `/api/v1/day/advance` централизованно. Если `CORS_ORIGINS` не содержит точный frontend origin, browser/Telegram WebView заблокирует preflight до получения HTTP response от action endpoint, и frontend увидит это как network/fetch failure.
+
 ### Backend
 
 ```bash

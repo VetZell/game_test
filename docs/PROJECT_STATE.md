@@ -9,15 +9,15 @@
 - React 18 + TypeScript + Vite Telegram Mini App frontend.
 - Entry point: `frontend/src/main.tsx`; current app shell and gameplay UI live primarily in `frontend/src/App.tsx`.
 - The frontend initializes Telegram WebApp APIs, reads `initData`, authenticates through the backend, renders Marina visuals from `frontend/public/marina/` assets through a centralized emotion display mapping, and calls backend chat/action/day-advance endpoints.
-- API base URL comes from `VITE_API_URL`; when absent, code falls back to the current Railway backend URL.
-- Chat/action/day-advance frontend requests include backend-compatible `idempotency_key` values generated per intentional user mutation; action failures are converted to safe user-facing messages with retry support; helper behavior is covered by Vitest unit tests and critical Telegram auth/chat/action/action-error-retry/day-advance/emotion React flows are covered by Vitest/jsdom integration tests with mocked Telegram WebApp and fetch.
+- API base URL is centralized in `frontend/src/apiConfig.ts`: `VITE_API_URL` is normalized when present, otherwise code falls back to `https://web-production-9b804.up.railway.app`; auth, chat, action and day-advance endpoints are built through the shared helper.
+- Chat/action/day-advance frontend requests include backend-compatible `idempotency_key` values generated per intentional user mutation; action failures are converted to safe user-facing messages with retry support and safe structured developer diagnostics; helper/API URL behavior is covered by Vitest unit tests and critical Telegram auth/chat/action/action-error-retry/day-advance/emotion React flows are covered by Vitest/jsdom integration tests with mocked Telegram WebApp and fetch.
 
 ## Backend
 - FastAPI + async SQLAlchemy + PostgreSQL.
 - Entry point: `backend/app/main.py`; deployment command runs `uvicorn app.main:app`. Chat/action/day-advance route handlers now delegate gameplay/economy/period mutations to `backend/app/game_services.py`, and chat replies delegate deterministic intent/emotional-tone/memory policy to `backend/app/personality.py`.
 - Runtime schema creation has been removed from the FastAPI lifespan; schema management is represented by Alembic configuration and a baseline migration that handles empty databases and existing create_all-created schemas.
 - The baseline downgrade is intentionally irreversible to prevent accidental deletion of adopted pre-Alembic tables and user data.
-- Production CORS origins are read from `CORS_ORIGINS`; localhost origins are denied by default and added only when `ENVIRONMENT`/`APP_ENV` explicitly selects a local/development/test environment.
+- Production CORS origins are read from `CORS_ORIGINS`; localhost origins are denied by default and added only when `ENVIRONMENT`/`APP_ENV` explicitly selects a local/development/test environment. Production frontend action requests require `CORS_ORIGINS` to include the exact frontend public origin so `/api/v1/actions` preflight succeeds.
 - Economy-changing chat/action requests and day-period advancement support optional idempotency keys backed by persisted idempotency records with request fingerprints; reusing a key with a different payload returns HTTP 409.
 - Telegram authentication is enforced for `/api/v1/auth/telegram`, `/api/v1/chat`, `/api/v1/actions`, and `/api/v1/day/advance` through `TELEGRAM_BOT_TOKEN` validation.
 - Marina day progression uses existing `day`/`period` fields with deterministic `morning → day → evening → night → morning` transitions, small clamped need deltas, event-memory persistence, and no database schema changes.
@@ -58,3 +58,8 @@
 ## TASK-015 Railway Frontend Build
 - Frontend dependency installation is pinned to Node `>=20.19.0 <23` and npm `>=10 <12`, the Railway frontend Docker build uses `npm ci --include=dev --include=optional`, and the lockfile explicitly contains `@rollup/rollup-linux-x64-musl@4.62.2` for Alpine/Linux musl Rollup resolution.
 - New frontend deployment can be distinguished from the stale deployment by verifying TASK-014 action error recovery behavior in the Mini App without adding a user-visible debug banner.
+
+## TASK-016 Frontend Backend Connectivity
+- TASK-016 identified the production network/fetch failure as CORS preflight rejection: the public backend `/health` was reachable, but an `OPTIONS /api/v1/actions` preflight with an Origin header returned HTTP 400 with no `Access-Control-Allow-Origin`, which browsers surface as a network failure.
+- The frontend now centralizes API URL normalization/endpoint construction and logs safe action diagnostics with origin, API base URL, endpoint, method, elapsed time, HTTP status when available and error category without Telegram `init_data` or secrets.
+- Repository tests cover production fallback URL selection, configured `VITE_API_URL`, endpoint normalization, retry URL reuse, HTTP-vs-network classification and backend CORS preflight behavior for configured/unconfigured origins.
