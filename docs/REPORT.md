@@ -1,64 +1,60 @@
 # Task
-TASK-014 — Исправить выполнение игровых действий и понятную обработку ошибок
+TASK-015 — Исправить сборку frontend в Railway из-за отсутствующего native Rollup package
 
 ## Status
 SUCCESS
 
 ## Summary
-- Audited the frontend action path, mutation payload helper, action integration tests, backend `/api/v1/actions` route, action service, schemas, Telegram auth, persisted idempotency and API URL usage.
-- Found the exact user-visible `Load failed` cause: action `fetch()` network rejections/Telegram WebView load failures were displayed directly via `reason.message` in `performAction()`, so raw technical browser errors reached the UI.
-- Added centralized frontend action error mapping for network/`Load failed`, auth, conflict, validation/unavailable, server and unknown failures.
-- Preserved previous player/Marina state on action errors, reset pending state reliably, restored the emotion visual after failed temporary action visuals, and added one-click retry for the last failed action.
-- Retry creates a fresh mutation payload and a fresh `idempotency_key`; local state is applied only after a confirmed backend success.
-- Added structured safe developer diagnostics for action failures without Telegram `init_data`, bot tokens or secrets.
-- Added frontend and backend regression coverage for successful coffee action, friendly error mapping, retry behavior, idempotency replay/conflict, auth rejection and response contract.
+- Audited `frontend/package.json`, `frontend/package-lock.json`, local Node/npm versions, Vite/Rollup versions, Dockerfiles and Railway JSON configuration.
+- Found the exact repository-side cause: Rollup `4.62.2` declares `@rollup/rollup-linux-x64-musl` as a platform optional dependency, but the committed lockfile did not contain the `node_modules/@rollup/rollup-linux-x64-musl` package entry, so a deterministic install from the lockfile in Railway Alpine/Linux musl could omit the native loader required by Rollup.
+- Added `@rollup/rollup-linux-x64-musl@4.62.2` as a locked optional frontend dependency and regenerated the lock metadata while keeping `package-lock.json` committed and deterministic.
+- Added frontend `engines` constraints for supported Node/npm versions and changed the frontend Docker build stage from `npm install` to `npm ci --include=dev --include=optional` so Railway uses the lockfile and installs optional native packages needed for the production build.
+- Documented the frontend Railway root/build expectations and a short post-deploy check that distinguishes the new deployment without adding a debug banner.
 
 ## Files Changed
-- `frontend/src/App.tsx` — centralized action error mapping, safe diagnostics, retry state, retry button behavior, pending cleanup and preserved local state on failures.
-- `frontend/src/index.css` — styled the action error panel retry button and disabled state.
-- `frontend/src/App.integration.test.tsx` — added action network/auth/server/conflict/validation error, retry, new idempotency key and false-local-success regression coverage.
-- `backend/tests/test_action_endpoint_regression.py` — added HTTP-level backend action regression tests for coffee success, auth rejection, idempotent replay, conflict 409 and response contract.
-- `docs/ARCHITECTURE.md`, `docs/PROJECT_STATE.md`, `docs/TECH_DEBT.md`, `docs/ROADMAP.md`, `docs/CHANGELOG.md`, `docs/TASK.md`, `docs/REPORT.md` — documentation updated for TASK-014.
+- `frontend/package.json` — added Rollup Linux x64 musl optional dependency and Node/npm engine constraints.
+- `frontend/package-lock.json` — added the root optional dependency metadata and the locked `@rollup/rollup-linux-x64-musl@4.62.2` package entry with registry integrity.
+- `frontend/Dockerfile` — changed build-stage dependency installation to deterministic `npm ci --include=dev --include=optional`.
+- `README.md` — documented frontend Railway root/build command expectations and safe post-deploy verification.
+- `docs/PROJECT_STATE.md` — recorded the deterministic frontend build and Rollup musl package state.
+- `docs/TECH_DEBT.md` — recorded the remaining real Railway deployment verification debt because Docker/Railway runtime is unavailable in this container.
+- `docs/ROADMAP.md` and `docs/CHANGELOG.md` — recorded TASK-015 as completed/reported.
+- `docs/TASK.md` and `docs/REPORT.md` — updated task status and this report.
 
 ## Problems Found
-- `performAction()` caught any failure and rendered `reason.message`; in WebKit/Telegram WebView network-load failures can produce the raw text `Load failed`.
-- Action HTTP error handling reused backend/raw detail text directly, which could expose technical or unhelpful messages in the UI.
-- There was no retry control for a failed action mutation; users had to tap an action again without clear recovery guidance.
-- Action error diagnostics were not structured by endpoint/status/safe detail.
+- The frontend lockfile included Rollup and the Linux x64 GNU optional package entry, but did not include `node_modules/@rollup/rollup-linux-x64-musl` even though Rollup lists it in `optionalDependencies`.
+- `frontend/Dockerfile` used `npm install`, which can update or reinterpret dependency resolution during image build instead of strictly verifying the committed lockfile.
+- The frontend package did not declare the supported Node/npm range used by current Vite/jsdom/Railway Node images.
+- Docker is not installed in this execution container, so an actual Alpine/musl image build could not be executed locally.
 
 ## Problems Fixed
-- Network `TypeError`, `Load failed`, `Failed to fetch` and similar errors now display `Не удалось подключиться к серверу.`.
-- HTTP 401/403 displays `Не удалось подтвердить авторизацию Telegram.`.
-- HTTP 409 displays a conflict/retry-safe user message without applying a false success.
-- HTTP 400/422 displays `Действие сейчас выполнить нельзя.`.
-- HTTP 500+ displays `Сервер временно недоступен. Попробуйте ещё раз.`.
-- Unknown action failures display `Не удалось выполнить действие.`.
-- The error panel now includes `Повторить` for the last failed action; retry uses a fresh idempotency key and clears stale errors before the new attempt.
-- Failed actions preserve the previous player stats/emotion/message, remove pending state and restore the prior emotion visual.
-- Backend action behavior and contracts were preserved and covered with HTTP-level regression tests.
+- The Rollup musl native package is now explicitly present in `package.json` and `package-lock.json`, with version `4.62.2` matching the resolved Rollup version.
+- Railway frontend Docker builds now run `npm ci --include=dev --include=optional`, preserving deterministic lockfile installation while ensuring build-time dev dependencies and optional native packages are included.
+- The supported Node/npm range is recorded in `frontend/package.json` and the lockfile.
+- Documentation now states the frontend Railway root is `frontend`, the build uses `frontend/Dockerfile`, and deployment can be checked via existing TASK-014 behavior/footer version rather than a debug banner.
 
 ## Tests
 - PASS — `git status --short --branch`
 - PASS — `git diff --check`
-- PASS — `cd frontend && npm install`
+- PASS — `cd frontend && rm -rf node_modules dist`
+- PASS — `cd frontend && npm ci`
+- PASS — `cd frontend && npm ls rollup @rollup/rollup-linux-x64-musl --all`
 - PASS — `cd frontend && npm test -- --run`
 - PASS — `cd frontend && npm run build`
-- PASS — `cd backend && pytest -q`
-- PASS — `cd backend && python -m compileall .`
-- PASS — `cd backend && python -c 'from app.main import app; print(app.title, app.version)'`
-- PASS — `cd backend && alembic heads`
+- PASS — `python3 - <<'PY' ... package-lock Rollup musl/local-path audit ... PY`
+- WARNING — `docker --version` failed because Docker CLI is not installed in this container; Alpine/musl container build was not executed locally.
 
 ## Risks
-- Browser/network error wording differs between engines; mapping checks both `TypeError` and common raw fetch/load phrases so user-facing output stays stable.
-- Retry is intentionally limited to the last failed action mutation and creates a new idempotency key because the previous request was not confirmed successful by the frontend.
+- The fix is repository-level and deterministic, but the final proof that Railway no longer emits `Cannot find module @rollup/rollup-linux-x64-musl` requires an actual Railway frontend deployment after this PR is merged.
+- `@rollup/rollup-linux-x64-musl` is intentionally platform-specific; it is locked because the target failing build environment is Railway's Linux/musl frontend image.
 
 ## Technical Debt
+- Verify the TASK-015 fix in the real Railway frontend service after merge because Docker/Railway runtime validation is unavailable in this container.
 - Existing PostgreSQL staging/production-like Alembic validation debt remains unchanged.
-- Broader end-to-end coverage remains future work beyond mocked Vitest/jsdom action failure/retry tests.
 
 ## Safe To Merge
 YES
 
 ## Commit / PR
-- Implementation commit: 5c508c1d88ebd6ae8df1756883c2c330cd367cad
-- Pull Request: https://github.com/VetZell/game_test/pull/13
+- Implementation commit: 061504fd492280e7d2bfe193ce865ae0aff223cf
+- Pull Request: https://github.com/VetZell/game_test/pull/14

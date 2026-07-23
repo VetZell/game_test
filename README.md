@@ -22,6 +22,12 @@ npm run dev
 
 Frontend по умолчанию использует `VITE_API_URL`, если переменная задана. Если `VITE_API_URL` отсутствует, текущий код использует fallback Railway backend URL.
 
+### Frontend Railway build
+
+Frontend-сервис Railway должен использовать **Root Directory**: `frontend`, `frontend/Dockerfile` и `frontend/railway.json`. Build stage выполняет deterministic install через `npm ci --include=dev --include=optional`, затем `npm run build`. Для Node/Rollup сборки поддерживаются Node `>=20.19.0 <23` и npm `>=10 <12`; `package-lock.json` содержит optional Rollup package `@rollup/rollup-linux-x64-musl`, необходимый для Railway Alpine/Linux musl image.
+
+Короткая проверка нового deployment без debug-баннера: открыть Mini App после деплоя и убедиться, что доступно поведение TASK-014 — action error panel показывает безопасное сообщение и кнопку `Повторить`, а в footer остаётся текущая версия приложения.
+
 ### Backend
 
 ```bash

@@ -4,7 +4,7 @@
 TASK-015
 
 ## Status
-READY
+DONE
 
 ## Priority
 High
