@@ -6,16 +6,16 @@
 ## Repository layout
 - `frontend/` — React + TypeScript + Vite Telegram Mini App frontend.
   - `frontend/src/main.tsx` mounts React and imports global styles.
-  - `frontend/src/App.tsx` contains the current single-page game shell, Telegram WebApp initialization, API calls, local UI state, Marina visuals, action buttons, and chat overlay.
-  - `frontend/src/mutationPayload.ts` builds chat/action mutation payloads with per-request `idempotency_key` values.
+  - `frontend/src/App.tsx` contains the current single-page game shell, Telegram WebApp initialization, API calls, local UI state, Marina visuals, action buttons, day-advance control, and chat overlay.
+  - `frontend/src/mutationPayload.ts` builds chat/action/day-advance mutation payloads with per-request `idempotency_key` values.
   - `frontend/src/mutationPayload.test.ts` covers idempotency key generation and mutation payload behavior with Vitest in Node mode.
-  - `frontend/src/App.integration.test.tsx` covers Telegram-auth, chat, action, pending-action and chat-error flows with mocked Telegram WebApp and fetch in Vitest/jsdom.
+  - `frontend/src/App.integration.test.tsx` covers Telegram-auth, chat, action, day-advance, pending-duplicate and error-recovery flows with mocked Telegram WebApp and fetch in Vitest/jsdom.
   - `frontend/src/telegram.d.ts` declares the Telegram WebApp browser API used by the app.
   - `frontend/public/marina/` and `frontend/public/marina/v2/` contain Marina image assets and manifests.
   - `frontend/Dockerfile`, `frontend/railway.json`, and `frontend/serve.json` describe the static frontend deployment.
 - `backend/` — FastAPI backend with PostgreSQL persistence.
-  - `backend/app/main.py` defines the FastAPI app, CORS middleware, health/root endpoints, Telegram auth endpoint, and thin chat/action route handlers.
-  - `backend/app/game_services.py` orchestrates chat/action state mutation, persistence, idempotent response models, and delegates deterministic Marina chat personality/memory response policy.
+  - `backend/app/main.py` defines the FastAPI app, CORS middleware, health/root endpoints, Telegram auth endpoint, and thin chat/action/day-advance route handlers.
+  - `backend/app/game_services.py` orchestrates chat/action/day-period state mutation, persistence, idempotent response models, and delegates deterministic Marina chat personality/memory response policy.
   - `backend/app/personality.py` contains deterministic local intent classification, emotional-tone response variants, and safe recent user-memory selection for chat replies.
   - `backend/app/database.py` builds the async SQLAlchemy engine from `DATABASE_URL` and converts Railway-style `postgres://`/`postgresql://` URLs to `postgresql+asyncpg://`.
   - `backend/app/models.py` defines SQLAlchemy models for `users`, `marina_states`, `marina_memories`, and `idempotency_records`.
@@ -34,10 +34,10 @@
 3. The frontend sends `init_data` to `POST /api/v1/auth/telegram`.
 4. The backend validates `init_data` signature and age using `TELEGRAM_BOT_TOKEN`.
 5. The backend gets or creates the player and initial `MarinaState` in PostgreSQL.
-6. Frontend actions and chat requests call `/api/v1/actions` and `/api/v1/chat`, respectively.
+6. Frontend actions, chat, and day progression call `/api/v1/actions`, `/api/v1/chat`, and `/api/v1/day/advance`, respectively.
 7. FastAPI route handlers authenticate/load the player and call service-layer functions.
 8. The chat service classifies message intent, selects a safe relevant prior user memory when applicable, applies state changes, persists user/Marina memories, and returns the existing response model.
-9. The action service mutates player/Marina state, persists event memories, and returns updated response models to the route handler.
+9. The action service mutates player/Marina state, persists event memories, and returns updated response models to the route handler. The day service advances `morning → day → evening → night → morning`, increments the day only after night, applies small clamped need deltas, and persists one event memory.
 
 ## Frontend API configuration
 - The frontend API base URL is `VITE_API_URL` when set.
@@ -50,10 +50,11 @@
 - `POST /api/v1/auth/telegram` — validates Telegram init data and gets/creates a player.
 - `POST /api/v1/chat` — validates Telegram init data, creates a reply, mutates relationship/calm/trust/mood/experience, stores user and Marina memories, and supports optional idempotency.
 - `POST /api/v1/actions` — validates Telegram init data, applies one supported action, mutates game state/economy, stores an event memory, and supports optional idempotency.
+- `POST /api/v1/day/advance` — validates Telegram init data, advances Marina to the next day period using existing `day`/`period` fields, applies clamped need deltas only, stores one event memory, and supports optional idempotency.
 
 ## Authentication and identity
 - Telegram-authenticated flows use `validate_init_data()` in `backend/app/telegram_auth.py`.
-- The backend trusts Telegram `initData` for `/api/v1/auth/telegram`, `/api/v1/chat`, and `/api/v1/actions`.
+- The backend trusts Telegram `initData` for `/api/v1/auth/telegram`, `/api/v1/chat`, `/api/v1/actions`, and `/api/v1/day/advance`.
 - `TELEGRAM_BOT_TOKEN` is required for those authenticated flows.
 - If `TELEGRAM_BOT_TOKEN` is absent, authenticated endpoints return an authorization error through FastAPI error handling.
 
@@ -63,11 +64,11 @@
   - `marina_states` — day/period and Marina relationship/status metrics.
   - `marina_memories` — user, Marina, and event memory rows.
   - `idempotency_records` — stored responses keyed by user, endpoint, idempotency key, and request fingerprint.
-- `/api/v1/chat` and `/api/v1/actions` accept optional `idempotency_key` fields.
+- `/api/v1/chat`, `/api/v1/actions`, and `/api/v1/day/advance` accept optional `idempotency_key` fields.
 - When a key is supplied, the backend stores a response and SHA-256 request fingerprint.
 - Reusing the same key with the same payload replays the stored response.
 - Reusing the same key with a different payload returns HTTP 409.
-- Frontend chat/action calls build mutation payloads with a fresh `idempotency_key` for each intentional user request.
+- Frontend chat/action/day-advance calls build mutation payloads with a fresh `idempotency_key` for each intentional user request.
 
 ## Migrations and database
 - Runtime `Base.metadata.create_all()` is not used by FastAPI startup.
@@ -99,7 +100,7 @@
 ## Current boundaries and known limitations
 - Documentation changes in TASK-004 do not change runtime behavior, API contracts, UI, game balance, or database schema.
 - Backend chat orchestration remains in `backend/app/game_services.py`, while deterministic Marina personality and safe memory-selection policy is isolated in `backend/app/personality.py`; action economy remains in `game_services.py`.
-- Frontend sends idempotency keys with chat/action mutation payloads, and React-level Vitest/jsdom integration tests cover critical mocked auth, chat and action flows.
+- Frontend sends idempotency keys with chat/action/day-advance mutation payloads, and React-level Vitest/jsdom integration tests cover critical mocked auth, chat and action flows.
 - The former unauthenticated player helper endpoints `POST /api/v1/players` and `GET /api/v1/players/{telegram_id}` are removed; player creation/loading happens through Telegram-authenticated flows only.
 - Deployment does not automatically run Alembic migrations; operators must run/verify `./scripts/migrate.sh` separately before API rollout and `/health` verification.
 - PostgreSQL migration rollout needs staging/production-like validation.

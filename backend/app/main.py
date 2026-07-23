@@ -8,10 +8,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from .database import engine, get_session
-from .game_services import apply_chat_message, apply_game_action
+from .game_services import advance_day_period, apply_chat_message, apply_game_action
 from .idempotency import request_fingerprint, run_idempotent
 from .models import MarinaState, User
 from .schemas import (
+    DayAdvanceRequest,
+    DayAdvanceResponse,
     GameActionRequest,
     GameActionResponse,
     MarinaChatRequest,
@@ -175,5 +177,36 @@ async def perform_action(
         key=payload.idempotency_key,
         fingerprint=request_fingerprint({"action": payload.action}),
         response_model=GameActionResponse,
+        operation=operation,
+    )
+
+
+@app.post("/api/v1/day/advance", response_model=DayAdvanceResponse)
+async def advance_day(
+    payload: DayAdvanceRequest,
+    session: AsyncSession = Depends(get_session),
+) -> DayAdvanceResponse:
+    telegram_user = authenticate(payload.init_data)
+    user = await session.scalar(player_query(telegram_user.id))
+    if user is None:
+        user = await get_or_create_player(
+            PlayerCreate(
+                telegram_id=telegram_user.id,
+                username=telegram_user.username,
+                first_name=telegram_user.first_name,
+            ),
+            session,
+        )
+
+    async def operation() -> DayAdvanceResponse:
+        return await advance_day_period(session=session, user=user)
+
+    return await run_idempotent(
+        session=session,
+        user=user,
+        endpoint="day/advance",
+        key=payload.idempotency_key,
+        fingerprint=request_fingerprint({"advance": payload.advance}),
+        response_model=DayAdvanceResponse,
         operation=operation,
     )

@@ -4,7 +4,7 @@
 TASK-012
 
 ## Status
-READY
+DONE
 
 ## Priority
 Medium

@@ -241,4 +241,75 @@ describe('App Telegram integration flows', () => {
     await userEvent.type(input, 'Повторим')
     expect(within(form).getByRole('button')).not.toBeDisabled()
   })
+
+  it('advances the day with initData and idempotency key, then updates period stats and message', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(player()))
+      .mockResolvedValueOnce(jsonResponse({
+        message: 'Наступил день. Марина готова продолжать дела вместе с тобой.',
+        player: player({ marina: { ...player().marina, period: 'day', energy: 80, hunger: 49, mood: 78, calm: 42 } }),
+      }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<App />)
+    await screen.findByText('День 4')
+
+    await userEvent.click(screen.getByRole('button', { name: /Продолжить день/i }))
+
+    expect(await screen.findByText('Наступил день. Марина готова продолжать дела вместе с тобой.')).toBeInTheDocument()
+    expect(screen.getByText('Добрый день')).toBeInTheDocument()
+    expect(screen.getByText('13:00')).toBeInTheDocument()
+    expect(screen.getByText('80/100')).toBeInTheDocument()
+    expect(screen.getByText('49/100')).toBeInTheDocument()
+
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(fetchMock.mock.calls[1][0]).toBe(`${API_URL}/api/v1/day/advance`)
+    expect(requestBody(fetchMock.mock.calls[1])).toEqual({
+      init_data: INIT_DATA,
+      idempotency_key: 'integration-key-1',
+    })
+  })
+
+  it('prevents duplicate day advance requests while pending', async () => {
+    let resolveAdvance!: (response: Response) => void
+    const pendingAdvance = new Promise<Response>((resolve) => { resolveAdvance = resolve })
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(player()))
+      .mockReturnValueOnce(pendingAdvance)
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<App />)
+    await screen.findByText('День 4')
+
+    const advanceButton = screen.getByRole('button', { name: /Продолжить день/i })
+    await userEvent.click(advanceButton)
+    await waitFor(() => expect(advanceButton).toBeDisabled())
+    await userEvent.click(advanceButton)
+
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    resolveAdvance(jsonResponse({ message: 'Наступил день.', player: player({ marina: { ...player().marina, period: 'day' } }) }))
+    expect(await screen.findByText('Наступил день.')).toBeInTheDocument()
+  })
+
+  it('recovers from day advance errors without applying a local period transition', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(player()))
+      .mockResolvedValueOnce(jsonResponse({ detail: 'day unavailable' }, { status: 503 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<App />)
+    await screen.findByText('День 4')
+
+    const advanceButton = screen.getByRole('button', { name: /Продолжить день/i })
+    await userEvent.click(advanceButton)
+
+    expect(await screen.findByText('day unavailable')).toBeInTheDocument()
+    expect(screen.getByText('Доброе утро')).toBeInTheDocument()
+    expect(screen.getByText('08:00')).toBeInTheDocument()
+    await waitFor(() => expect(advanceButton).not.toBeDisabled())
+  })
+
 })
