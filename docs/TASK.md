@@ -4,7 +4,7 @@
 TASK-017
 
 ## Status
-READY
+DONE
 
 ## Priority
 High

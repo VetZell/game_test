@@ -91,3 +91,8 @@
 - Added safe structured action request diagnostics that distinguish network failures from HTTP responses without logging Telegram `init_data` or secrets.
 - Added frontend API URL/action diagnostics tests and backend CORS preflight tests for configured and unconfigured production origins.
 - Documented that production backend `CORS_ORIGINS` must include the exact frontend origin; current public backend preflight rejection explains Telegram WebView network/fetch failures despite `/health` being reachable.
+
+## TASK-017 — Production idempotency migration repair
+- Added Alembic revision `20260723_0002` as the current head to safely ensure `idempotency_records` exists when a production-like database was already stamped at baseline but missed the idempotency table.
+- Added regression tests for clean upgrade, repeated upgrade, baseline-stamped missing-table repair, model/schema column parity, and action idempotency after an Alembic-created schema.
+- Documented the exact Railway migration commands and clarified that production success still requires an operator to run `alembic upgrade head` against the real PostgreSQL database.

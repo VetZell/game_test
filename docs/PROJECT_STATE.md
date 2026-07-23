@@ -25,8 +25,9 @@
 
 ## Database and Migrations
 - `DATABASE_URL` configures the async database engine; `postgres://` and `postgresql://` URLs are converted to `postgresql+asyncpg://`.
-- Alembic revision `20260722_0001` covers `users`, `marina_states`, `marina_memories`, and `idempotency_records`.
-- Migration application is an explicit operational step via `backend/scripts/migrate.sh`; Docker startup commands do not run Alembic automatically.
+- Alembic revision `20260722_0001` covers `users`, `marina_states`, `marina_memories`, and the initial `idempotency_records` schema.
+- Alembic revision `20260723_0002` is the current head and safely ensures `idempotency_records` exists for production-like databases already stamped at baseline without that table.
+- Migration application is an explicit operational step via `backend/scripts/migrate.sh` or `alembic upgrade head`; Docker startup commands do not run Alembic automatically.
 
 ## Deployment
 - Root and backend Dockerfiles include Alembic assets plus `scripts/` in the backend runtime image and run the FastAPI backend with Uvicorn only.
@@ -44,7 +45,7 @@
 - Preserve runtime behavior while documenting confirmed limitations and future work.
 
 ## Known Issues
-- Full production migration execution still requires a real `DATABASE_URL` and PostgreSQL staging/production-like validation.
+- Full production migration execution still requires a real Railway/PostgreSQL operator run of `alembic upgrade head`; repository tests cover SQLite clean and production-like missing-`idempotency_records` paths, but Codex cannot claim the live production DB has been migrated.
 - Chat/action gameplay orchestration lives in `backend/app/game_services.py`; deterministic Marina chat personality/memory policy lives in `backend/app/personality.py`; public player helper endpoints are no longer exposed.
 
 ## TASK-013 Frontend UI State
@@ -63,3 +64,9 @@
 - TASK-016 identified the production network/fetch failure as CORS preflight rejection: the public backend `/health` was reachable, but an `OPTIONS /api/v1/actions` preflight with an Origin header returned HTTP 400 with no `Access-Control-Allow-Origin`, which browsers surface as a network failure.
 - The frontend now centralizes API URL normalization/endpoint construction and logs safe action diagnostics with origin, API base URL, endpoint, method, elapsed time, HTTP status when available and error category without Telegram `init_data` or secrets.
 - Repository tests cover production fallback URL selection, configured `VITE_API_URL`, endpoint normalization, retry URL reuse, HTTP-vs-network classification and backend CORS preflight behavior for configured/unconfigured origins.
+
+
+## TASK-017 Production Idempotency Migration
+- TASK-017 found that a migration already existed in the baseline, but backend startup intentionally does not run Alembic automatically; a production database can therefore be stamped/apparently current while still missing `idempotency_records` if the explicit migration step was not run after the idempotency schema landed.
+- Current Alembic head is `20260723_0002`, a follow-up non-destructive revision that creates/repairs `idempotency_records` without manual SQL or runtime `create_all()`.
+- Operators still must run the Railway backend migration command against the real production PostgreSQL database before claiming production success.

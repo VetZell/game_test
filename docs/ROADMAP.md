@@ -18,9 +18,10 @@
 - TASK-014 action mutation error recovery and retry behavior for safe user-facing failures.
 - TASK-015 reproducible Railway frontend build fix for Rollup Linux x64 musl optional package resolution.
 - TASK-016 production Frontend → Backend connectivity diagnosis: centralized API URL handling, safe action diagnostics and documented/covered CORS preflight requirements.
+- TASK-017 production idempotency migration repair: Alembic head now includes a follow-up revision that creates/repairs `idempotency_records` for baseline-stamped production-like databases and documents the required Railway operator migration command.
 
 ## Next
-1. Validate Alembic upgrade, explicit migration command, and irreversible-downgrade failure behavior against a PostgreSQL staging/production-like database copy.
+1. Run and verify `alembic upgrade head` against the real Railway production PostgreSQL database, confirming `idempotency_records` exists and idempotent action/day mutations succeed.
 2. Expand end-to-end and broader frontend component coverage beyond the current critical integration flows.
 3. Expand Marina content, emotions, activities and mini-games on top of the deterministic personality/memory policy.
 4. Production readiness and release monitoring.

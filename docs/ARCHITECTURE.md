@@ -74,9 +74,10 @@
 
 ## Migrations and database
 - Runtime `Base.metadata.create_all()` is not used by FastAPI startup.
-- Alembic baseline revision `20260722_0001` creates/adopts the current schema.
-- The baseline handles empty databases and existing schemas created by the former runtime `create_all()` path.
-- Baseline downgrade is intentionally irreversible to avoid deleting adopted pre-Alembic tables and user data.
+- Alembic baseline revision `20260722_0001` creates/adopts the original current schema.
+- Follow-up revision `20260723_0002` is the current head and ensures `idempotency_records` exists for databases that were already stamped at the baseline revision but missed the table in production.
+- The migration path handles empty databases, existing schemas created by the former runtime `create_all()` path, and production-like baseline-stamped databases missing only `idempotency_records`.
+- Baseline and idempotency follow-up downgrades are intentionally irreversible to avoid deleting adopted pre-Alembic tables, user data, or replay records.
 - `DATABASE_URL` is required to run Alembic migrations online.
 - Production rollout still needs validation against a PostgreSQL staging or production-like copy.
 
@@ -88,7 +89,7 @@
 ## Deployment
 - Root backend Docker layout (`Dockerfile`) and backend-root layout (`backend/Dockerfile`) both install backend requirements and copy `app/`, `alembic.ini`, `alembic/`, and `scripts/` into the runtime image.
 - Backend Docker command runs only `uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}` and does not run Alembic migrations automatically.
-- Operators run migrations separately with `./scripts/migrate.sh`, which requires `DATABASE_URL` and executes `alembic upgrade head`.
+- Operators run migrations separately with `./scripts/migrate.sh` or the Railway shell command `alembic upgrade head`, both requiring `DATABASE_URL`; root-directory deployments should run `cd backend && alembic upgrade head`.
 - Railway configs define Dockerfile builds and health checks; migration, API start/deploy, and `/health` verification are separate rollout steps.
 - Frontend Docker builds with `npm run build` and serves `dist` using `serve` on `${PORT:-3000}`.
 - Application image rollback must not use destructive database downgrade; baseline downgrade is intentionally irreversible.
