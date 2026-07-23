@@ -1,9 +1,9 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import { createMutationPayload } from './mutationPayload'
 import {
-  ClipboardList, Coffee, Film, Footprints, Gem, Gift, Heart, Home, Mail,
-  MessageCircle, Send, ShoppingBag, Shirt, ShieldCheck, Smile, Sofa, Sun,
-  Trophy, Utensils, X, Zap,
+  Coffee, Film, Footprints, Gem, Heart, Home, Mail,
+  MessageCircle, Send, ShieldCheck, Smile, Sun,
+  Utensils, X, Zap,
 } from 'lucide-react'
 
 type Player = {
@@ -32,34 +32,44 @@ type ActionResponse = { message: string; player: Player }
 type DayAdvanceResponse = { message: string; player: Player }
 type ChatResponse = { reply: string; emotion: string; remembered?: string | null; player: Player }
 type ChatLine = { role: 'user' | 'marina'; text: string }
-type MarinaEmotion = 'neutral' | 'smile' | 'happy' | 'sad' | 'sleepy' | 'surprised' | 'thoughtful' | 'shy'
-type MarinaVisual = MarinaEmotion | 'coffee' | 'breakfast' | 'kiss' | 'stretch' | 'cat' | 'movie' | 'walk' | 'talk'
+type MarinaEmotion = 'neutral' | 'smile' | 'happy' | 'love' | 'caring' | 'sad' | 'sleepy' | 'surprised' | 'thoughtful' | 'shy'
+type MarinaVisual = 'neutral' | 'smile' | 'happy' | 'sad' | 'sleepy' | 'surprised' | 'thoughtful' | 'shy' | 'coffee' | 'breakfast' | 'kiss' | 'movie' | 'walk' | 'talk'
 
 const APP_VERSION = '1.3.1-happy-png'
 const API_URL = (import.meta.env.VITE_API_URL || 'https://web-production-9b804.up.railway.app').replace(/\/$/, '')
 
 const actions = [
-  { id: 'coffee', title: 'Выпить кофе', reward: '+10 энергии · +5 настроения', icon: Coffee, visual: 'coffee' as MarinaVisual, duration: 3600 },
-  { id: 'breakfast', title: 'Позавтракать', reward: '+15 сытости · +5 любви', icon: Utensils, visual: 'breakfast' as MarinaVisual, duration: 3800 },
-  { id: 'kind_words', title: 'Сказать тёплые слова', reward: '+10 любви · +10 настроения', icon: Mail, visual: 'kiss' as MarinaVisual, duration: 3200 },
-  { id: 'walk', title: 'Пойти на прогулку', reward: '+15 энергии · +5 спокойствия', icon: Footprints, visual: 'walk' as MarinaVisual, duration: 4200 },
-  { id: 'movie', title: 'Посмотреть фильм', reward: '+10 настроения · +5 спокойствия', icon: Film, visual: 'movie' as MarinaVisual, duration: 4200 },
+  { id: 'coffee', title: 'Выпить кофе', reward: '+10 энергии · +5 настроения', cost: '15 монет', icon: Coffee, visual: 'coffee' as MarinaVisual, duration: 3600 },
+  { id: 'breakfast', title: 'Позавтракать', reward: '+15 сытости · +5 любви', cost: '25 монет', icon: Utensils, visual: 'breakfast' as MarinaVisual, duration: 3800 },
+  { id: 'kind_words', title: 'Сказать тёплые слова', reward: '+10 любви · +10 настроения', cost: 'Бесплатно', icon: Mail, visual: 'kiss' as MarinaVisual, duration: 3200 },
+  { id: 'walk', title: 'Пойти на прогулку', reward: '+15 энергии · +5 спокойствия', cost: 'Бесплатно', icon: Footprints, visual: 'walk' as MarinaVisual, duration: 4200 },
+  { id: 'movie', title: 'Посмотреть фильм', reward: '+10 настроения · +5 спокойствия', cost: '20 монет', icon: Film, visual: 'movie' as MarinaVisual, duration: 4200 },
 ]
 
-const emotionLabels: Record<MarinaEmotion, string> = {
-  neutral: 'Спокойная', smile: 'Улыбается', happy: 'Счастливая', sad: 'Грустит',
-  sleepy: 'Хочет спать', surprised: 'Удивлена', thoughtful: 'Задумалась', shy: 'Смущается',
+const emotionConfig: Record<MarinaEmotion, { label: string; visual: MarinaVisual; tone: string }> = {
+  neutral: { label: 'Спокойная', visual: 'neutral', tone: 'neutral' },
+  smile: { label: 'Улыбается', visual: 'smile', tone: 'warm' },
+  happy: { label: 'Счастливая', visual: 'happy', tone: 'happy' },
+  love: { label: 'Влюблена', visual: 'happy', tone: 'love' },
+  caring: { label: 'Заботливая', visual: 'thoughtful', tone: 'caring' },
+  sad: { label: 'Грустит', visual: 'sad', tone: 'sad' },
+  sleepy: { label: 'Хочет спать', visual: 'sleepy', tone: 'sleepy' },
+  surprised: { label: 'Удивлена', visual: 'surprised', tone: 'bright' },
+  thoughtful: { label: 'Задумалась', visual: 'thoughtful', tone: 'calm' },
+  shy: { label: 'Смущается', visual: 'shy', tone: 'shy' },
 }
 
-const emotionVisuals: Record<string, MarinaEmotion> = {
-  neutral: 'neutral', smile: 'smile', happy: 'happy', love: 'happy', sad: 'sad',
-  caring: 'thoughtful', sleepy: 'sleepy', surprised: 'surprised', thoughtful: 'thoughtful', shy: 'shy',
+function resolveEmotion(rawEmotion: string | null | undefined, fallback: MarinaEmotion): MarinaEmotion {
+  if (rawEmotion && rawEmotion in emotionConfig) return rawEmotion as MarinaEmotion
+  return fallback
 }
 
 const idleLines: Record<MarinaEmotion, string[]> = {
   neutral: ['Мне хорошо, когда ты рядом.', 'Расскажи, как проходит твой день.', 'Давай сегодня никуда не спешить.'],
   smile: ['Я рада тебя видеть 😊', 'У меня сегодня хорошее настроение.', 'Рядом с тобой так уютно.'],
   happy: ['Я сегодня такая счастливая ❤️', 'Хочется крепко тебя обнять.', 'Спасибо, что заботишься обо мне.'],
+  love: ['Я чувствую твоё тепло ❤️', 'С тобой мне очень нежно.', 'Сегодня хочется быть ближе к тебе.'],
+  caring: ['Давай беречь друг друга.', 'Мне спокойно от твоей заботы.', 'Спасибо, что замечаешь моё настроение.'],
   sad: ['Мне немного грустно… побудь со мной.', 'Можно я просто посижу рядом?', 'Мне сейчас нужны твои тёплые слова.'],
   sleepy: ['Я уже немного засыпаю 😴', 'Кажется, мне пора отдохнуть.', 'Можно я положу голову тебе на плечо?'],
   surprised: ['Ой! Я этого не ожидала 😲', 'Ты умеешь меня удивлять.', 'Вот это неожиданность!'],
@@ -67,12 +77,19 @@ const idleLines: Record<MarinaEmotion, string[]> = {
   shy: ['Ты меня смущаешь 😊', 'Не смотри так… я краснею.', 'Мне очень приятно это слышать.'],
 }
 
+const periodMeta: Record<string, { label: string; time: string; next: string; nextLabel: string }> = {
+  morning: { label: 'Доброе утро', time: '08:00', next: 'day', nextLabel: 'дню' },
+  day: { label: 'Добрый день', time: '13:00', next: 'evening', nextLabel: 'вечеру' },
+  evening: { label: 'Добрый вечер', time: '19:00', next: 'night', nextLabel: 'ночи' },
+  night: { label: 'Спокойной ночи', time: '23:00', next: 'morning', nextLabel: 'новому утру' },
+}
+
 function deriveEmotion(player: Player): MarinaEmotion {
   const m = player.marina
   if (m.period === 'night' || m.energy <= 22) return 'sleepy'
   if (m.mood <= 32 || m.love <= 25) return 'sad'
   if (m.romance >= 75 && m.love >= 70) return 'shy'
-  if (m.love >= 85 && m.mood >= 75) return 'happy'
+  if (m.love >= 85 && m.mood >= 75) return 'love'
   if (m.calm <= 35 || m.trust <= 30) return 'thoughtful'
   if (m.mood >= 65 || m.love >= 65) return 'smile'
   return 'neutral'
@@ -97,9 +114,15 @@ export default function App() {
   const actionActiveRef = useRef(false)
 
   function applyEmotion(nextEmotion: MarinaEmotion) {
-    emotionRef.current = nextEmotion
-    setEmotion(nextEmotion)
-    if (!actionActiveRef.current) setActiveVisual(nextEmotion)
+    const resolved = resolveEmotion(nextEmotion, 'neutral')
+    emotionRef.current = resolved
+    setEmotion(resolved)
+    actionActiveRef.current = false
+    if (visualTimer.current !== null) {
+      window.clearTimeout(visualTimer.current)
+      visualTimer.current = null
+    }
+    setActiveVisual(emotionConfig[resolved].visual)
   }
 
   useEffect(() => {
@@ -152,7 +175,7 @@ export default function App() {
     setActiveVisual(visual)
     visualTimer.current = window.setTimeout(() => {
       actionActiveRef.current = false
-      setActiveVisual(emotionRef.current)
+      setActiveVisual(emotionConfig[emotionRef.current].visual)
       visualTimer.current = null
     }, duration)
   }
@@ -234,7 +257,7 @@ export default function App() {
       }
       const result: ChatResponse = await response.json()
       setPlayer(result.player)
-      applyEmotion(emotionVisuals[result.emotion] || deriveEmotion(result.player))
+      applyEmotion(resolveEmotion(result.emotion, deriveEmotion(result.player)))
       setMessage(result.reply)
       setChatLines((lines) => [...lines, { role: 'marina', text: result.reply }])
       window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success')
@@ -261,14 +284,16 @@ export default function App() {
 
   const currentPlayer = player!
   const marina = currentPlayer.marina
-  const timeLabel = marina.period === 'morning' ? '08:00' : marina.period === 'day' ? '13:00' : marina.period === 'evening' ? '19:00' : '23:00'
-  const periodLabel = marina.period === 'morning' ? 'Доброе утро' : marina.period === 'day' ? 'Добрый день' : marina.period === 'evening' ? 'Добрый вечер' : 'Спокойной ночи'
-  const marinaImage = activeVisual === 'happy' ? '/marina/happy.PNG' : `/marina/v2/${activeVisual}.webp`
+  const currentPeriod = periodMeta[marina.period] || periodMeta.morning
+  const timeLabel = currentPeriod.time
+  const periodLabel = currentPeriod.label
+  const emotionDisplay = emotionConfig[emotion]
+  const marinaImage = `/marina/v2/${activeVisual}.webp`
 
   return (
     <main className="game-shell">
       <section className="hud-panel">
-        <div className="time-card"><strong>{timeLabel}</strong><span>День {marina.day}</span><small><Sun size={15}/> {periodLabel}</small><button type="button" onClick={() => void advanceDay()} disabled={dayBusy || busyAction !== null || chatBusy}>{dayBusy ? 'Переходим…' : 'Продолжить день'}</button></div>
+        <div className="time-card"><div className="time-main"><strong>{timeLabel}</strong><span>День {marina.day}</span></div><small><Sun size={15} aria-hidden="true"/> {periodLabel}</small><button type="button" className="advance-day-button" onClick={() => void advanceDay()} disabled={dayBusy || busyAction !== null || chatBusy} aria-busy={dayBusy}>{dayBusy ? 'Переходим…' : `Продолжить день → ${currentPeriod.nextLabel}`}</button></div>
         <div className="stats-row">{stats.map(({ label, value, icon: Icon, className }) => (
           <article className={`mini-stat ${className}`} key={label}><div><Icon size={17}/><span>{label}</span></div><strong>{value}/100</strong><div className="meter"><i style={{ width: `${Math.min(100, value)}%` }}/></div></article>
         ))}</div>
@@ -281,29 +306,27 @@ export default function App() {
           <div className="room-sofa"><span/><span/></div><div className="room-rug"/><div className="room-floor"/>
         </div>
 
-        <aside className="left-rail">
-          <div className="wallet-card"><div><span className="coin-dot">◉</span><strong>{currentPlayer.coins}</strong><button type="button">+</button></div><div><Gem size={19}/><strong>{currentPlayer.crystals}</strong><button type="button">+</button></div></div>
-          <button type="button" className="side-action"><Gift size={25}/><span>Ежедневный<br/>бонус</span></button>
-          <button type="button" className="side-action"><ClipboardList size={25}/><span>Задания</span><b>3</b></button>
+        <aside className="left-rail" aria-label="Ресурсы игрока">
+          <div className="wallet-card"><div><span className="coin-dot" aria-hidden="true">◉</span><span>Монеты</span><strong>{currentPlayer.coins}</strong></div><div><Gem size={19} aria-hidden="true"/><span>Кристаллы</span><strong>{currentPlayer.crystals}</strong></div></div>
         </aside>
 
-        <div className={`marina-character visual-${activeVisual}`}><div className="marina-aura"/><img src={marinaImage} alt={`Марина: ${emotionLabels[emotion]}`} draggable={false}/><span className="emotion-badge">{emotionLabels[emotion]}</span></div>
+        <div className={`marina-character visual-${activeVisual} tone-${emotionDisplay.tone}`}><div className="marina-aura"/><img src={marinaImage} alt={`Марина: ${emotionDisplay.label}`} draggable={false}/><span className="emotion-badge">{emotionDisplay.label}</span></div>
 
-        <div className="speech-bubble"><div className="speech-title"><Heart size={17}/><strong>Марина</strong></div><p>{message}</p></div>
-        <aside className="wish-card"><strong>Сегодня Марина хочет:</strong><span>🌳 Прогуляться в парке</span><span>🎬 Посмотреть фильм</span><span>☕ Выпить кофе вместе</span></aside>
-        <button type="button" className="talk-button" onClick={() => { showVisual('talk', 2200); setChatOpen(true) }}><MessageCircle size={22}/><span>Поговорить<small>Марина помнит диалог</small></span></button>
+        <div className="speech-bubble" aria-live="polite"><div className="speech-title"><Heart size={17} aria-hidden="true"/><strong>Марина</strong><span>{emotionDisplay.label}</span></div><p>{message}</p></div>
+        <aside className="wish-card"><strong>Фокус сейчас</strong><span>Эмоция: {emotionDisplay.label}</span><span>Следующий переход: {currentPeriod.nextLabel}</span></aside>
+        <button type="button" className="talk-button" onClick={() => { showVisual('talk', 2200); setChatOpen(true) }}><MessageCircle size={22} aria-hidden="true"/><span>Поговорить<small>Марина помнит диалог</small></span></button>
       </section>
 
-      <section className="action-section"><h2>Чем займёмся?</h2><div className="action-grid">{actions.map(({ id, title, reward, icon: Icon, visual, duration }) => (
-        <button className="action-card" type="button" key={id} disabled={busyAction !== null} onClick={() => void performAction(id, visual, duration)}>
-          <div className="action-art"><img src={`/marina/v2/${visual}.webp`} alt={title} loading="lazy"/><span className="action-icon"><Icon size={21}/></span></div>
-          <strong>{busyAction === id ? 'Марина занята…' : title}</strong><small>{reward}</small>
+      <section className="action-section"><div className="section-heading"><h2>Чем займёмся?</h2><span>Опыт {currentPlayer.experience}</span></div><div className="action-grid">{actions.map(({ id, title, reward, cost, icon: Icon, visual, duration }) => (
+        <button className={`action-card ${busyAction === id ? 'is-pending' : ''}`} type="button" key={id} disabled={busyAction !== null || dayBusy || chatBusy} aria-busy={busyAction === id} onClick={() => void performAction(id, visual, duration)}>
+          <div className="action-art"><img src={`/marina/v2/${visual}.webp`} alt="" aria-hidden="true" loading="lazy"/><span className="action-icon"><Icon size={21} aria-hidden="true"/></span></div>
+          <strong>{busyAction === id ? 'Выполняем…' : title}</strong><small>{reward}</small><em>{cost}</em>
         </button>
-      ))}</div>{error && <div className="error-card">{error}</div>}<small className="version">{APP_VERSION} · опыт {currentPlayer.experience}</small></section>
+      ))}</div>{error && <div className="error-card" role="alert">{error}</div>}<small className="version">{APP_VERSION} · опыт {currentPlayer.experience}</small></section>
 
-      <nav className="bottom-nav"><button type="button" className="active"><Home size={23}/><span>Главная</span></button><button type="button"><ShoppingBag size={23}/><span>Магазин</span></button><button type="button"><Shirt size={23}/><span>Гардероб</span></button><button type="button"><Sofa size={23}/><span>Комната</span></button><button type="button"><Trophy size={23}/><span>Достижения</span></button></nav>
+      <nav className="bottom-nav" aria-label="Основная навигация"><button type="button" className="active" aria-current="page"><Home size={23} aria-hidden="true"/><span>Главная</span></button><span className="nav-placeholder">Скоро: магазин</span><span className="nav-placeholder">Гардероб</span><span className="nav-placeholder">Комната</span></nav>
 
-      {chatOpen && <div className="chat-overlay" role="dialog" aria-modal="true"><section className="chat-panel"><header><div><Heart size={20}/><span><strong>Марина</strong><small>{emotionLabels[emotion]} · помнит разговоры</small></span></div><button type="button" onClick={() => setChatOpen(false)}><X size={22}/></button></header><div className="chat-history">{chatLines.map((line, index) => <div className={`chat-line ${line.role}`} key={`${line.role}-${index}`}>{line.text}</div>)}{chatBusy && <div className="chat-line marina typing">Марина печатает…</div>}</div><form className="chat-form" onSubmit={sendChat}><input value={chatInput} onChange={(event) => setChatInput(event.target.value)} placeholder="Напиши Марине…" maxLength={500}/><button type="submit" disabled={chatBusy || !chatInput.trim()}><Send size={20}/></button></form></section></div>}
+      {chatOpen && <div className="chat-overlay" role="dialog" aria-modal="true"><section className="chat-panel"><header><div><Heart size={20}/><span><strong>Марина</strong><small>{emotionDisplay.label} · помнит разговоры</small></span></div><button type="button" aria-label="Закрыть чат" onClick={() => setChatOpen(false)}><X size={22} aria-hidden="true"/></button></header><div className="chat-history">{chatLines.map((line, index) => <div className={`chat-line ${line.role}`} key={`${line.role}-${index}`}>{line.text}</div>)}{chatBusy && <div className="chat-line marina typing">Марина печатает…</div>}</div><form className="chat-form" onSubmit={sendChat}><input value={chatInput} onChange={(event) => setChatInput(event.target.value)} placeholder="Напиши Марине…" maxLength={500}/><button type="submit" aria-label="Отправить сообщение" disabled={chatBusy || !chatInput.trim()} aria-busy={chatBusy}><Send size={20} aria-hidden="true"/></button></form></section></div>}
     </main>
   )
 }

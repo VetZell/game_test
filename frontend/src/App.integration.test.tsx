@@ -312,4 +312,60 @@ describe('App Telegram integration flows', () => {
     await waitFor(() => expect(advanceButton).not.toBeDisabled())
   })
 
+
+  it('maps backend love emotion to synchronized label and visual, and falls back for unknown emotion', async () => {
+    const lovingPlayer = player({ marina: { ...player().marina, love: 90, mood: 85 } })
+    const unknownEmotionPlayer = player({ marina: { ...player().marina, love: 20, mood: 25 } })
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(player()))
+      .mockResolvedValueOnce(jsonResponse({ reply: 'Люблю быть рядом.', emotion: 'love', player: lovingPlayer }))
+      .mockResolvedValueOnce(jsonResponse({ reply: 'Неизвестное настроение.', emotion: 'mystery', player: unknownEmotionPlayer }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<App />)
+    await screen.findByText('День 4')
+    await userEvent.click(screen.getByRole('button', { name: /Поговорить/i }))
+
+    const input = screen.getByPlaceholderText('Напиши Марине…')
+    await userEvent.type(input, 'Люблю')
+    fireEvent.submit(input.closest('form')!)
+    expect(await screen.findAllByText('Люблю быть рядом.')).toHaveLength(2)
+    expect(screen.getAllByText('Влюблена').length).toBeGreaterThan(0)
+    expect(screen.getByAltText('Марина: Влюблена')).toHaveAttribute('src', '/marina/v2/happy.webp')
+
+    await userEvent.type(input, 'Что дальше?')
+    fireEvent.submit(input.closest('form')!)
+    expect(await screen.findAllByText('Неизвестное настроение.')).toHaveLength(2)
+    expect(screen.getAllByText('Грустит').length).toBeGreaterThan(0)
+    expect(screen.getByAltText('Марина: Грустит')).toHaveAttribute('src', '/marina/v2/sad.webp')
+  })
+
+  it('keeps inactive nav items non-interactive and exposes busy/accessibility attributes', async () => {
+    let resolveAdvance!: (response: Response) => void
+    const pendingAdvance = new Promise<Response>((resolve) => { resolveAdvance = resolve })
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(player()))
+      .mockReturnValueOnce(pendingAdvance)
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<App />)
+    await screen.findByText('День 4')
+
+    expect(screen.queryByRole('button', { name: /Магазин/i })).not.toBeInTheDocument()
+    expect(screen.getByText('Скоро: магазин')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Главная/i })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('button', { name: /Поговорить/i })).toBeInTheDocument()
+
+    const advanceButton = screen.getByRole('button', { name: /Продолжить день/i })
+    expect(advanceButton).toHaveAttribute('aria-busy', 'false')
+    await userEvent.click(advanceButton)
+    await waitFor(() => expect(advanceButton).toHaveAttribute('aria-busy', 'true'))
+    await waitFor(() => expect(screen.getByRole('button', { name: /Выпить кофе/i })).toBeDisabled())
+
+    resolveAdvance(jsonResponse({ message: 'Наступил день.', player: player({ marina: { ...player().marina, period: 'day' } }) }))
+    await screen.findByText('Наступил день.')
+  })
+
 })

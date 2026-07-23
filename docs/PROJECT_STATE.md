@@ -8,9 +8,9 @@
 ## Frontend
 - React 18 + TypeScript + Vite Telegram Mini App frontend.
 - Entry point: `frontend/src/main.tsx`; current app shell and gameplay UI live primarily in `frontend/src/App.tsx`.
-- The frontend initializes Telegram WebApp APIs, reads `initData`, authenticates through the backend, renders Marina visuals from `frontend/public/marina/` assets, and calls backend chat/action endpoints.
+- The frontend initializes Telegram WebApp APIs, reads `initData`, authenticates through the backend, renders Marina visuals from `frontend/public/marina/` assets through a centralized emotion display mapping, and calls backend chat/action/day-advance endpoints.
 - API base URL comes from `VITE_API_URL`; when absent, code falls back to the current Railway backend URL.
-- Chat/action frontend requests include backend-compatible `idempotency_key` values generated per intentional user mutation; helper behavior is covered by Vitest unit tests and critical Telegram auth/chat/action/day-advance React flows are covered by Vitest/jsdom integration tests with mocked Telegram WebApp and fetch.
+- Chat/action/day-advance frontend requests include backend-compatible `idempotency_key` values generated per intentional user mutation; helper behavior is covered by Vitest unit tests and critical Telegram auth/chat/action/day-advance/emotion React flows are covered by Vitest/jsdom integration tests with mocked Telegram WebApp and fetch.
 
 ## Backend
 - FastAPI + async SQLAlchemy + PostgreSQL.
@@ -46,3 +46,7 @@
 ## Known Issues
 - Full production migration execution still requires a real `DATABASE_URL` and PostgreSQL staging/production-like validation.
 - Chat/action gameplay orchestration lives in `backend/app/game_services.py`; deterministic Marina chat personality/memory policy lives in `backend/app/personality.py`; public player helper endpoints are no longer exposed.
+
+## TASK-013 Frontend UI State
+- The main Telegram Mini App screen now has a polished HUD, period-aware scene styling, synchronized emotion label/visual/tone mapping, clearer action cards, explicit day-advance target text, non-interactive placeholders for unavailable navigation sections, safe-area CSS, focus-visible styling, reduced-motion support and updated integration coverage.
+- No backend API, database schema, Alembic revision, auth, idempotency semantics, personality policy or action economy changed in TASK-013.
