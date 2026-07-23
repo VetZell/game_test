@@ -36,7 +36,7 @@ SUCCESS
 - Replaced tall stat layout with compact stat cards and thinner meters; mobile uses internal horizontal scrolling rather than forcing the whole page to overflow.
 - Added testable compact CSS/DOM hooks: `compact-hud`, `compact-time-card`, `compact-advance-button`, `compact-stats-row`, `compact-mini-stat`, and `compact-meter`.
 - Added frontend test coverage proving the HUD still exposes time, day, period, transition button and the original five displayed stats: Love/Mood/Hunger/Energy/Calm.
-- Fixed review feedback: the 320–430 px breakpoint no longer switches `.time-card` to one column or forces `.advance-day-button` to `width: 100%`.
+- Fixed review feedback: the 320–430 px breakpoint no longer switches `.time-card` to one column or forces `.advance-day-button` to `width: 100%`; the `Настроение` fallback value is restored to the original `m?.mood ?? 80`.
 
 ## Tests
 - PASS — `git status --short --branch`

@@ -337,7 +337,7 @@ export default function App() {
     const m = player?.marina
     return [
       { label: 'Любовь', value: m?.love ?? 50, icon: Heart, className: 'pink' },
-      { label: 'Настроение', value: m?.mood ?? 70, icon: Smile, className: 'orange' },
+      { label: 'Настроение', value: m?.mood ?? 80, icon: Smile, className: 'orange' },
       { label: 'Сытость', value: m?.hunger ?? 80, icon: Utensils, className: 'green' },
       { label: 'Энергия', value: m?.energy ?? 100, icon: Zap, className: 'blue' },
       { label: 'Спокойствие', value: m?.calm ?? 75, icon: ShieldCheck, className: 'purple' },
