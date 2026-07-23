@@ -79,3 +79,47 @@ async def test_coffee_action_response_contract_and_idempotency(client):
 async def test_action_endpoint_rejects_missing_telegram_auth(client):
     response = await client.post("/api/v1/actions", json={"init_data": "", "action": "coffee"})
     assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_action_endpoint_works_after_alembic_migration_without_runtime_create_all(tmp_path, monkeypatch):
+    from tests.test_alembic_existing_database import run_alembic
+
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", BOT_TOKEN)
+    database_path = tmp_path / "migrated-action.sqlite"
+    run_alembic(database_path, "upgrade", "head")
+
+    engine = create_async_engine(f"sqlite+aiosqlite:///{database_path}")
+    session_factory = async_sessionmaker(engine, expire_on_commit=False)
+
+    async def override_get_session():
+        async with session_factory() as session:
+            yield session
+
+    app.dependency_overrides[get_session] = override_get_session
+    transport = httpx.ASGITransport(app=app)
+    try:
+        async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as test_client:
+            response = await test_client.post(
+                "/api/v1/actions",
+                json={
+                    "init_data": signed_init_data(user_id=8101),
+                    "action": "coffee",
+                    "idempotency_key": "migrated-coffee-action",
+                },
+            )
+            replay = await test_client.post(
+                "/api/v1/actions",
+                json={
+                    "init_data": signed_init_data(user_id=8101),
+                    "action": "coffee",
+                    "idempotency_key": "migrated-coffee-action",
+                },
+            )
+    finally:
+        app.dependency_overrides.clear()
+        await engine.dispose()
+
+    assert response.status_code == 200
+    assert replay.status_code == 200
+    assert response.json() == replay.json()

@@ -73,7 +73,7 @@ cd backend
 DATABASE_URL=<database url> ./scripts/migrate.sh
 ```
 
-`backend/scripts/migrate.sh` проверяет наличие `DATABASE_URL` и затем выполняет только `alembic upgrade head`; обычный `uvicorn` startup не запускает миграции автоматически. Baseline revision `20260722_0001` поддерживает пустую БД и существующую схему, созданную прежним runtime `create_all()`. Downgrade baseline intentionally irreversible, чтобы не удалить adopted pre-Alembic таблицы и данные. Подробности: [`docs/ALEMBIC_BOOTSTRAP.md`](docs/ALEMBIC_BOOTSTRAP.md).
+`backend/scripts/migrate.sh` проверяет наличие `DATABASE_URL` и затем выполняет только `alembic upgrade head`; обычный `uvicorn` startup не запускает миграции автоматически. Baseline revision `20260722_0001` поддерживает пустую БД и существующую схему, созданную прежним runtime `create_all()`. Follow-up revision `20260723_0002` дополнительно гарантирует наличие таблицы `idempotency_records` даже для production-like базы, которая уже была отмечена Alembic как baseline/head, но фактически не получила эту таблицу. Downgrade для baseline/follow-up revisions intentionally irreversible, чтобы не удалить adopted pre-Alembic таблицы, пользовательские данные или replay-записи idempotency. Подробности: [`docs/ALEMBIC_BOOTSTRAP.md`](docs/ALEMBIC_BOOTSTRAP.md).
 
 ## Развёртывание backend на Railway
 
@@ -94,7 +94,13 @@ ENVIRONMENT=production
 7. Перед production rollout выполните migration отдельной командой из того же backend image или shell окружения, не объединяя её с API startup:
 
 ```bash
-cd backend
+# если Railway Root Directory = repository root
+cd backend && DATABASE_URL=${{Postgres.DATABASE_URL}} alembic upgrade head
+
+# если Railway Root Directory = backend
+DATABASE_URL=${{Postgres.DATABASE_URL}} alembic upgrade head
+
+# альтернативно через скрипт внутри backend image/shell
 DATABASE_URL=${{Postgres.DATABASE_URL}} ./scripts/migrate.sh
 ```
 

@@ -1,71 +1,71 @@
 # Task
-TASK-016 — Найти и устранить причину сетевого отказа Frontend → Backend в Telegram Mini App
+TASK-017 — Исправить production PostgreSQL migration для отсутствующей таблицы `idempotency_records`
 
 ## Status
 SUCCESS
 
 ## Summary
-- Audited the production action path across frontend API URL selection, generated bundle output, action/chat/day/auth fetch calls, Railway frontend build config, backend `/health`, backend `/api/v1/actions`, and CORS settings.
-- Confirmed the production bundle without `VITE_API_URL` contains the fallback backend base URL `https://web-production-9b804.up.railway.app` and action path `/api/v1/actions`; the generated bundle contains no Telegram `init_data` or bot token strings.
-- Confirmed the public backend URL is reachable: `GET https://web-production-9b804.up.railway.app/health` returned HTTP 200 with `database: ok`.
-- Found the production connectivity blocker available from this environment: backend CORS preflight rejects an Origin-bearing action request before JavaScript can receive an HTTP action response. `OPTIONS https://web-production-9b804.up.railway.app/api/v1/actions` with `Origin` and `Access-Control-Request-Method: POST` returned HTTP 400, no `Access-Control-Allow-Origin`, and body `Disallowed CORS origin`.
-- Added centralized frontend API base URL normalization and endpoint construction so auth, chat, action, and day-advance requests use one deterministic URL path builder.
-- Added safe structured action diagnostics for developer console/logging: frontend origin, API base URL, endpoint, method, elapsed time, HTTP status when present, and error category/name/message without Telegram `init_data`, cookies, tokens or secrets.
-- Added tests proving production fallback URL selection, configured `VITE_API_URL`, URL normalization, correct action endpoint, retry endpoint reuse, and HTTP-vs-network action error classification.
-- Added backend CORS preflight tests proving configured production origins allow `/api/v1/actions` preflight and unconfigured origins are rejected.
+- Audited Alembic configuration, migration graph, SQLAlchemy `IdempotencyRecord` model, idempotency runtime code, backend Docker layouts, Railway config files, migration script and deployment documentation.
+- Confirmed a migration already existed in baseline revision `20260722_0001`, and the baseline was the previous Alembic head. The missing production table is therefore not caused by absent model metadata or a missing baseline table definition.
+- Identified the likely repository-side cause of the production mismatch: backend API startup intentionally runs only Uvicorn and does not auto-run Alembic, so production required a separate operator migration step after the idempotency schema landed. A database that was already stamped/apparently current at baseline could still be missing `idempotency_records` if that explicit migration step was skipped or the live schema drifted before the table was added.
+- Added follow-up Alembic revision `20260723_0002` as the single current head. It safely creates `idempotency_records` when missing and repairs the `request_fingerprint` column, user index and unique key for partially migrated schemas without using runtime `create_all()` or manual SQL.
+- Kept the new revision irreversible to avoid deleting production idempotency replay records during downgrade.
+- Added regression tests for clean upgrade, existing create_all-style schema upgrade, baseline-stamped missing-table repair, repeated upgrade idempotency, model/schema column parity and action idempotency after an Alembic-created schema.
+- Updated Railway/operator documentation with exact migration commands for repository-root and `backend` Root Directory deployments.
+- Did not claim the live Railway PostgreSQL database has been migrated; Codex has no production database access. Production still requires an operator to run `alembic upgrade head` against the real backend database.
 
 ## Files Changed
-- `frontend/src/apiConfig.ts` — new centralized API base URL normalization, endpoint builder, and safe diagnostic URL helper.
-- `frontend/src/apiConfig.test.ts` — new Vitest unit tests for production fallback, configured `VITE_API_URL`, URL normalization and diagnostic URL sanitization.
-- `frontend/src/App.tsx` — uses shared API endpoint builder for auth/chat/action/day-advance and logs structured safe action diagnostics with elapsed time and category.
-- `frontend/src/App.integration.test.tsx` — updated integration assertions for shared API base URL, action retry endpoint reuse, and HTTP-vs-network diagnostics.
-- `backend/tests/test_settings.py` — added HTTP-level CORS preflight tests for configured and unconfigured production origins.
-- `README.md`, `docs/ARCHITECTURE.md`, `docs/PROJECT_STATE.md`, `docs/TECH_DEBT.md`, `docs/ROADMAP.md`, `docs/CHANGELOG.md`, `docs/TASK.md`, `docs/REPORT.md` — documentation updated for TASK-016 findings, requirements and status.
+- `backend/alembic/versions/20260723_0002_ensure_idempotency_records.py` — new Alembic follow-up revision that ensures `idempotency_records` exists and is the current head.
+- `backend/tests/test_alembic_existing_database.py` — added regression coverage for baseline-stamped production-like databases missing `idempotency_records`, repeated upgrade safety and model/schema column parity.
+- `backend/tests/test_action_endpoint_regression.py` — added HTTP-level action/idempotency regression using an Alembic-migrated database instead of runtime `Base.metadata.create_all()`.
+- `README.md` — added explicit Railway migration commands for repository-root and `backend` Root Directory layouts and documented revision `20260723_0002`.
+- `docs/ARCHITECTURE.md` — updated migration/deployment architecture to describe current head `20260723_0002` and production-like missing-table repair.
+- `docs/PROJECT_STATE.md` — updated database/migration state and TASK-017 notes.
+- `docs/TECH_DEBT.md` — narrowed remaining production debt to the required real Railway/PostgreSQL migration execution and verification.
+- `docs/ROADMAP.md` — moved TASK-017 repository-side migration repair into completed work and updated next production step.
+- `docs/CHANGELOG.md` — recorded TASK-017.
+- `docs/TASK.md` — changed TASK-017 status to `DONE`.
+- `docs/REPORT.md` — replaced with this report.
 
 ## Problems Found
-- The production backend host used by the bundle is reachable over HTTPS, so the observed frontend failure is not explained by DNS/TLS/backend health for `https://web-production-9b804.up.railway.app`.
-- The action path in the production bundle is `/api/v1/actions`, so the observed failure is not explained by a wrong action path or double slash.
-- A real public preflight check against the backend action endpoint returns HTTP 400 with no `Access-Control-Allow-Origin`; browsers and Telegram WebView surface this CORS preflight rejection to `fetch()` as a network failure, which matches the user-visible `Не удалось подключиться к серверу.`.
-- Repository code cannot edit Railway runtime variables; if production frontend origin is missing from backend `CORS_ORIGINS`, a deploy alone will not make browser preflight succeed.
+- Baseline revision `20260722_0001` already included `idempotency_records`, but production logs show `UndefinedTableError`, proving the live database schema did not match the repository migration/model state.
+- Backend Docker commands run Uvicorn only; migrations are intentionally not automatic at API startup. This is correct for safety, but it means production must run a separate Alembic command.
+- A production database can be baseline-stamped or otherwise treated as current while missing `idempotency_records`; with only baseline as head, `alembic upgrade head` would have no later revision to execute in that drifted state.
+- Codex cannot inspect or mutate the real Railway production PostgreSQL database from this repository, so live migration execution remains an operator action.
 
 ## Problems Fixed
-- API base URL and endpoint construction are now centralized in `frontend/src/apiConfig.ts`; auth/bootstrap, chat, action and day advance use the same normalized base URL and endpoint builder.
-- Frontend action diagnostics now distinguish `network`, `timeout`, `http` and `unknown` categories. HTTP 401/409/422/500 responses retain HTTP classification instead of being treated as no connection.
-- Action diagnostics include safe frontend/backend URL data, method, elapsed time, HTTP status when available and error name/message without logging Telegram `init_data` or secrets.
-- Backend CORS behavior is covered by preflight tests, documenting the exact required production behavior: `CORS_ORIGINS` must include the exact frontend origin for `/api/v1/actions` preflight to return 200.
-- README and architecture docs now explicitly state the required production pairing: frontend `VITE_API_URL=https://<backend-public-domain>` and backend `CORS_ORIGINS=https://<frontend-public-domain>`.
-
-## Production URL / Path Evidence
-- Before fix/audit: generated bundle fallback API base URL was confirmed as `https://web-production-9b804.up.railway.app`; action endpoint path was confirmed as `/api/v1/actions`.
-- Public backend health: `GET https://web-production-9b804.up.railway.app/health` returned HTTP 200 and `{"status":"ok","database":"ok"}`.
-- Public backend preflight: `OPTIONS https://web-production-9b804.up.railway.app/api/v1/actions` with an Origin header returned HTTP 400, no `Access-Control-Allow-Origin`, and `Disallowed CORS origin`.
-- After fix: repository code still builds the same valid HTTPS backend base URL/path unless `VITE_API_URL` is provided, but endpoint generation is centralized and tested; successful production connectivity additionally requires backend Railway `CORS_ORIGINS` to include the deployed frontend origin.
+- Added non-destructive Alembic revision `20260723_0002` after the baseline. It creates `idempotency_records` if missing even when the database is already at baseline revision.
+- The revision also ensures `request_fingerprint`, `ix_idempotency_records_user_id` and `uq_idempotency_user_endpoint_key` for partial schemas where the table already exists.
+- Alembic graph now has a single head: `20260723_0002`.
+- Regression tests prove `alembic upgrade head` creates the idempotency table on clean/existing databases, repairs a baseline-stamped missing-table database, and can be run repeatedly without breaking the schema.
+- Action endpoint regression now exercises an Alembic-created database and confirms an idempotent action request/replay returns HTTP 200 rather than failing due to a missing idempotency table.
+- Documentation now gives exact Railway operator commands:
+  - repository root Root Directory: `cd backend && DATABASE_URL=${{Postgres.DATABASE_URL}} alembic upgrade head`;
+  - `backend` Root Directory: `DATABASE_URL=${{Postgres.DATABASE_URL}} alembic upgrade head`;
+  - backend image/script alternative: `DATABASE_URL=${{Postgres.DATABASE_URL}} ./scripts/migrate.sh`.
 
 ## Tests
 - PASS — `git status --short --branch`
 - PASS — `git diff --check`
-- PASS — `cd frontend && rm -rf node_modules dist && npm ci`
-- PASS — `cd frontend && npm test -- --run`
-- PASS — `cd frontend && npm run build`
-- PASS — generated production bundle inspection for `https://web-production-9b804.up.railway.app`, `/api/v1/actions`, and absence of Telegram secret strings.
+- PASS — `cd backend && alembic heads`
+- PASS — `cd backend && DATABASE_URL=sqlite+aiosqlite:////tmp/task017-current.sqlite alembic upgrade head && DATABASE_URL=sqlite+aiosqlite:////tmp/task017-current.sqlite alembic current`
 - PASS — `cd backend && pytest -q`
 - PASS — `cd backend && python -m compileall .`
 - PASS — `cd backend && python -c 'from app.main import app; print(app.title, app.version)'`
-- PASS — `cd backend && alembic heads`
-- PASS — public `GET https://web-production-9b804.up.railway.app/health` returned HTTP 200.
-- PASS — public `OPTIONS https://web-production-9b804.up.railway.app/api/v1/actions` reproduced the CORS blocker with HTTP 400 and no `Access-Control-Allow-Origin`.
+- PASS — `cd backend && pytest -q tests/test_alembic_existing_database.py::test_alembic_upgrade_handles_existing_create_all_schema tests/test_alembic_existing_database.py::test_followup_revision_repairs_database_stamped_at_baseline_without_idempotency_records tests/test_alembic_existing_database.py::test_idempotency_records_schema_matches_model_required_columns tests/test_action_endpoint_regression.py::test_action_endpoint_works_after_alembic_migration_without_runtime_create_all`
 
 ## Risks
-- Codex cannot read or edit Railway runtime variables from the repository. The code/docs/tests now identify and cover the required CORS behavior, but the real backend service must have `CORS_ORIGINS` set to the exact production frontend origin for browser/Telegram WebView action requests to pass preflight.
-- The public preflight check used a safe synthetic Origin, not a real Telegram user action and not Telegram `init_data`; this avoids production mutation and secret exposure.
+- Production success is not yet confirmed because Codex does not have access to Railway production PostgreSQL. An operator must run the migration command against the real backend database and verify the table exists.
+- The repository test environment used SQLite temporary databases. The migration code is Alembic/SQLAlchemy-based and includes PostgreSQL-safe constraint repair, but a real PostgreSQL staging/production validation remains required before claiming live production resolution.
+- Downgrade remains intentionally disabled for baseline/follow-up migration paths to avoid deleting adopted tables, user data or idempotency replay records.
 
 ## Technical Debt
-- Verify in Railway after merge/deploy that backend `CORS_ORIGINS` exactly matches the production frontend origin and that action preflight returns 200 for that origin.
-- Existing PostgreSQL staging/production-like Alembic validation debt remains unchanged.
+- Run `alembic upgrade head` against Railway production PostgreSQL and verify `idempotency_records` exists.
+- After production migration, verify idempotent `/api/v1/actions` and `/api/v1/day/advance` requests no longer raise `UndefinedTableError`.
 
 ## Safe To Merge
 YES
 
 ## Commit / PR
-- Implementation commit: d25266065393a29b2babbacbfdd3c2410bd15cbc
-- Pull Request: https://github.com/VetZell/game_test/pull/15
+- Implementation commit: pending
+- Pull Request: pending

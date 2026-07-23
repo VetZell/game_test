@@ -56,7 +56,7 @@ def test_alembic_upgrade_handles_existing_create_all_schema(tmp_path):
     with verify_engine.connect() as connection:
         version = connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
     verify_engine.dispose()
-    assert version == "20260722_0001"
+    assert version == "20260723_0002"
 
 
 def test_alembic_downgrade_base_does_not_delete_existing_schema_or_user_data(tmp_path):
@@ -67,7 +67,7 @@ def test_alembic_downgrade_base_does_not_delete_existing_schema_or_user_data(tmp
     result = run_alembic(database_path, "downgrade", "base", check=False)
 
     assert result.returncode != 0
-    assert "Baseline revision 20260722_0001 is irreversible" in result.stderr
+    assert "irreversible" in result.stderr
 
     verify_engine = create_engine(f"sqlite:///{database_path}")
     inspector = inspect(verify_engine)
@@ -81,3 +81,66 @@ def test_alembic_downgrade_base_does_not_delete_existing_schema_or_user_data(tmp
 
     assert user == (1001, "legacy", "Legacy Player", 42, 777)
     assert memory == "pre alembic memory"
+
+
+def stamp_baseline_without_idempotency_records(database_path: Path) -> None:
+    create_pre_alembic_schema(database_path, with_user_data=True)
+    sync_engine = create_engine(f"sqlite:///{database_path}")
+    with sync_engine.begin() as connection:
+        connection.execute(text("CREATE TABLE alembic_version (version_num VARCHAR(32) NOT NULL)"))
+        connection.execute(text("INSERT INTO alembic_version (version_num) VALUES ('20260722_0001')"))
+    sync_engine.dispose()
+
+
+def idempotency_column_names(database_path: Path) -> set[str]:
+    verify_engine = create_engine(f"sqlite:///{database_path}")
+    columns = {column["name"] for column in inspect(verify_engine).get_columns("idempotency_records")}
+    verify_engine.dispose()
+    return columns
+
+
+def test_followup_revision_repairs_database_stamped_at_baseline_without_idempotency_records(tmp_path):
+    database_path = tmp_path / "baseline-stamped-without-idempotency.sqlite"
+    stamp_baseline_without_idempotency_records(database_path)
+
+    first = run_alembic(database_path, "upgrade", "head")
+    second = run_alembic(database_path, "upgrade", "head")
+
+    assert first.returncode == 0
+    assert second.returncode == 0
+
+    verify_engine = create_engine(f"sqlite:///{database_path}")
+    inspector = inspect(verify_engine)
+    assert "idempotency_records" in inspector.get_table_names()
+    assert {
+        "id",
+        "user_id",
+        "endpoint",
+        "key",
+        "request_fingerprint",
+        "response",
+        "created_at",
+    }.issubset({column["name"] for column in inspector.get_columns("idempotency_records")})
+    assert "ix_idempotency_records_user_id" in {index["name"] for index in inspector.get_indexes("idempotency_records")}
+    assert "uq_idempotency_user_endpoint_key" in {
+        constraint["name"] for constraint in inspector.get_unique_constraints("idempotency_records")
+    }
+    with verify_engine.connect() as connection:
+        version = connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
+        user = connection.execute(text("SELECT telegram_id, coins FROM users WHERE id = 1")).one()
+    verify_engine.dispose()
+
+    assert version == "20260723_0002"
+    assert user == (1001, 777)
+
+
+def test_idempotency_records_schema_matches_model_required_columns(tmp_path):
+    from app.models import IdempotencyRecord
+
+    database_path = tmp_path / "fresh-head.sqlite"
+    run_alembic(database_path, "upgrade", "head")
+
+    database_columns = idempotency_column_names(database_path)
+    model_columns = {column.name for column in IdempotencyRecord.__table__.columns}
+
+    assert model_columns == database_columns

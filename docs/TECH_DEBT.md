@@ -1,7 +1,7 @@
 # Technical Debt
 
 ## High
-- Run the Alembic baseline upgrade and irreversible-downgrade failure path against a staging/production-like PostgreSQL database copy before production rollout; SQLite coverage verifies the existing-schema and data-preservation paths, but PostgreSQL rollout still needs environment-specific validation.
+- Run `alembic upgrade head` against the real Railway production PostgreSQL database, then verify `idempotency_records` exists and action/day idempotent mutations no longer raise `UndefinedTableError`; repository SQLite tests cover clean and baseline-stamped missing-table paths, but Codex cannot access the live production DB.
 
 ## Low
 - Marina memory relevance is deterministic keyword/token matching; richer semantic recall remains future work if product scope requires it, without adding external AI services by default.
