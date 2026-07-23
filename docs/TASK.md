@@ -1,141 +1,83 @@
 # Current Task
 
 ## Task ID
-TASK-014
+TASK-015
 
 ## Status
-DONE
+READY
 
 ## Priority
 High
 
 ## Title
-Исправить выполнение игровых действий и понятную обработку ошибок
+Исправить сборку frontend в Railway из-за отсутствующего native Rollup package
 
 ## Goal
-Устранить сбой, из-за которого после нажатия на игровое действие, в первую очередь `Выпить кофе`, интерфейс показывает техническое сообщение `Load failed`, обеспечить корректное выполнение action mutation, безопасное обновление состояния и понятное восстановление после сетевых, auth и backend ошибок.
+Устранить падение production-сборки frontend-сервиса Railway с ошибкой `Cannot find module @rollup/rollup-linux-x64-musl`, обеспечить воспроизводимую установку зависимостей в Linux/musl окружении Railway и успешный деплой актуального frontend из `main`.
+
+## Context
+Backend после PR #13 успешно задеплоен, но frontend Railway остаётся на старом deployment, потому что новая сборка падает на `npm run build` внутри Rollup native loader. В логах Railway отсутствует optional native package `@rollup/rollup-linux-x64-musl`.
 
 ## Instructions
-1. Начать работу от актуального `main` после merge PR #12.
+1. Начать работу от актуального `main` после merge PR #13.
 2. Выполнить обязательную startup-синхронизацию и чтение файлов согласно `AGENTS.md` и `docs/CODEX_PROTOCOL.md`.
-3. Создать отдельную ветку для TASK-014.
-4. Провести аудит текущих:
-   - `frontend/src/App.tsx`;
-   - frontend API/fetch helpers и mutation payload helpers;
-   - `frontend/src/App.integration.test.tsx`;
-   - backend route игрового действия;
-   - backend action service, schemas, Telegram auth и persisted idempotency;
-   - конфигурации frontend API base URL и deployment-related environment usage.
-5. Воспроизвести или точно локализовать причину `Load failed` при нажатии `Выпить кофе`. Не маскировать проблему только заменой текста ошибки.
-6. Проверить весь путь action mutation:
-   - правильный endpoint и HTTP method;
-   - корректный API base URL;
-   - `init_data` Telegram WebApp;
-   - непустой новый `idempotency_key` через существующий helper;
-   - JSON request/response contracts;
-   - HTTP status handling;
-   - network rejection/timeout behavior;
-   - применение обновлённого `player` после успеха.
-7. Сохранить существующие backend action contracts, Telegram identity semantics, persisted idempotency и игровую экономику, если фактическая причина не требует минимального совместимого исправления.
-8. После успешного действия frontend должен без перезагрузки:
-   - применить обновлённый `player`;
-   - обновить характеристики Марины;
-   - обновить backend emotion и соответствующий visual/label;
-   - показать пользовательское сообщение action response;
-   - снять pending state;
-   - выполнить существующий success haptic, если доступен.
-9. Во время pending:
-   - блокировать повторный запуск того же действия;
-   - показывать понятный индикатор процесса на action card;
-   - использовать корректные `disabled` и `aria-busy`.
-10. При любой ошибке:
-   - сохранить предыдущее локальное состояние игрока и Марины;
-   - гарантированно снять pending state;
-   - разрешить повторную попытку;
-   - не показывать пользователю сырой текст `Load failed`, stack trace, HTML или технический response body.
-11. Добавить централизованное преобразование ошибок action request в понятные сообщения минимум для:
-   - отсутствия соединения/сетевой ошибки: `Не удалось подключиться к серверу.`;
-   - HTTP 401/403: `Не удалось подтвердить авторизацию Telegram.`;
-   - HTTP 409: понятное сообщение о конфликте/повторе запроса без ложного локального успеха;
-   - HTTP 422 или action unavailable: `Действие сейчас выполнить нельзя.`;
-   - HTTP 500+: `Сервер временно недоступен. Попробуйте ещё раз.`;
-   - неизвестной ошибки: `Не удалось выполнить действие.`
-12. Добавить в error panel кнопку `Повторить`, которая повторяет последнее неуспешное действие без перезагрузки страницы.
-13. Retry должен:
-   - создать новый mutation payload и новый idempotency key для запроса, который не был подтверждён сервером;
-   - не запускать параллельные дубли;
-   - корректно очищать старую ошибку при новом запуске;
-   - после успеха применить серверный ответ один раз.
-14. Не выводить чувствительные Telegram `init_data`, bot token или секреты в console logs.
-15. Для developer diagnostics использовать структурированный `console.error` минимум с:
-   - безопасным endpoint URL/path;
-   - HTTP status, если известен;
-   - безопасным текстом ответа или error detail;
-   - исходным Error/stack, если доступен;
-   - без Telegram init data и секретов.
-16. Проверить все существующие action cards, а не только `coffee`, чтобы общий request path и error recovery работали одинаково.
-17. Не изменять цены, эффекты, награды, relationship balance, day progression, chat personality/memory policy или DB schema.
-18. Добавить/обновить frontend integration tests минимум для:
-   - успешного действия `coffee` с правильным endpoint, `init_data` и непустым idempotency key;
-   - обновления player stats, emotion/visual и сообщения после успеха;
-   - network rejection с понятным сообщением вместо `Load failed`;
-   - HTTP 401;
-   - HTTP 500;
-   - pending duplicate protection;
-   - снятия pending после ошибки;
-   - кнопки `Повторить` и успешного retry;
-   - отсутствия ложного локального изменения состояния при ошибке.
-19. Добавить или сохранить backend regression tests минимум для:
-   - успешного `coffee` action;
-   - Telegram auth rejection;
-   - persisted idempotent replay;
-   - conflict 409 при том же ключе и другом payload;
-   - корректного action response contract.
-20. Если причина связана с production API URL/configuration, исправить её через существующий Vite/environment pattern, задокументировать обязательную переменную и сохранить безопасный development fallback. Не хардкодить временный tunnel или секретный URL.
-21. Обновить `docs/ARCHITECTURE.md`, `docs/PROJECT_STATE.md`, `docs/TECH_DEBT.md`, `docs/ROADMAP.md` и `docs/CHANGELOG.md` только по фактически выполненным изменениям.
-22. Полностью заменить `docs/REPORT.md` отчётом TASK-014 согласно протоколу. В отчёте отдельно указать точную найденную причину пользовательского `Load failed`.
-23. После завершения изменить статус задачи на `DONE`, сделать commit, push и открыть отдельный PR в `main`.
-24. Merge не выполнять.
+3. Создать отдельную ветку для TASK-015.
+4. Провести аудит:
+   - `frontend/package.json`;
+   - `frontend/package-lock.json`;
+   - версии Node, npm, Vite и Rollup;
+   - Railway/Nixpacks/Docker конфигурации в репозитории;
+   - root directory и build/start commands, зафиксированные в документации или config-файлах.
+5. Точно локализовать причину, по которой Linux/musl optional dependency Rollup отсутствует после установки зависимостей.
+6. Исправление должно быть репозиторным и воспроизводимым. Не ограничиваться ручным временным `Redeploy` или локальным удалением `node_modules`.
+7. Предпочитать минимальный надёжный вариант:
+   - корректно пересоздать `frontend/package-lock.json` совместимой версией npm;
+   - либо явно зафиксировать необходимый platform package/версию Rollup, если это доказанно требуется;
+   - либо добавить корректную Railway/Nixpacks install command через versioned config в репозитории.
+8. Не удалять lock-файл из репозитория без веской причины. Production install должен оставаться детерминированным.
+9. Не использовать постоянный workaround вида `rm -rf node_modules package-lock.json && npm install` на каждом production deploy, если проблему можно исправить lock-файлом или версионной конфигурацией.
+10. Проверить, что Railway frontend root остаётся `frontend` и build command выполняет production build именно этого приложения.
+11. При необходимости зафиксировать поддерживаемую версию Node/npm через существующий механизм проекта (`engines`, `.nvmrc`, Nixpacks config или эквивалент), не добавляя лишних систем сборки.
+12. Не менять runtime-логику игры, API contracts, backend, Telegram auth, игровую экономику или UI вне минимально необходимого изменения build/config.
+13. Добавить короткую проверку/документацию, позволяющую отличить новый frontend deployment от старого без вывода секретов. Не добавлять видимый пользователю debug-баннер.
+14. Обновить `docs/PROJECT_STATE.md`, `docs/TECH_DEBT.md`, `docs/CHANGELOG.md` и `docs/REPORT.md` только по фактически выполненным изменениям.
+15. В `docs/REPORT.md` указать:
+   - точную причину сбоя;
+   - какие файлы изменены;
+   - почему выбранный фикс устойчив для Railway Linux/musl;
+   - результаты clean-install и production build.
+16. После завершения изменить статус задачи на `DONE`, сделать commit, push и открыть отдельный PR в `main`.
+17. Merge и production deploy не выполнять.
 
 ## Validation
 - `git status --short --branch`
 - `git diff --check`
-- `cd frontend && npm install`
+- `cd frontend && rm -rf node_modules dist`
+- `cd frontend && npm ci`
 - `cd frontend && npm test -- --run`
 - `cd frontend && npm run build`
-- `cd backend && pytest -q`
-- `cd backend && python -m compileall .`
-- `cd backend && python -c 'from app.main import app; print(app.title, app.version)'`
-- `cd backend && alembic heads`
+- если доступен Docker или совместимый Linux runner — повторить clean install/build в Linux окружении и зафиксировать результат
+- проверить, что `package-lock.json` не содержит локальных путей и platform-specific мусора, не предназначенного для production
 
-Если какая-либо команда не может быть выполнена из-за отсутствия зависимостей или окружения, точно зафиксировать причину в `docs/REPORT.md` и не заявлять об успешной проверке.
+Если Linux/musl окружение недоступно локально, не заявлять, что Railway build подтверждён. Зафиксировать ограничение и доказать исправление анализом lock-файла, npm dependency tree и доступными clean-install проверками.
 
 ## Acceptance Criteria
-- Нажатие `Выпить кофе` отправляет корректный action request и при успешном backend response обновляет интерфейс без перезагрузки.
-- Точная причина прежнего `Load failed` найдена и устранена, а не только скрыта.
-- Пользователь больше не видит `Load failed` или другие сырые технические ошибки.
-- Network, auth, validation/conflict и server errors отображаются понятными русскими сообщениями.
-- После ошибки прежнее состояние сохраняется, pending снимается и действие можно повторить.
-- Кнопка `Повторить` корректно повторяет последнее действие без параллельного дубля.
-- Success обновляет stats, emotion/visual и message согласованно.
-- Telegram init data и секреты не попадают в логи.
-- Все action cards используют общий исправленный flow.
-- Frontend tests, production build и backend tests проходят.
-- Экономика, day progression, chat/personality, auth semantics и DB schema не изменены вне минимального совместимого исправления.
-- Документация соответствует фактическому состоянию.
+- `npm ci` выполняется на чистом checkout без ручного удаления `package-lock.json`.
+- `npm run build` проходит после clean install.
+- Rollup native package для Railway Linux/musl корректно разрешается при production install.
+- Railway больше не падает с `Cannot find module @rollup/rollup-linux-x64-musl`.
+- Frontend deployment может собрать актуальный `main`, содержащий TASK-014.
+- Lock-файл и версия package manager дают воспроизводимую установку.
+- Не внесены несвязанные изменения в игровой код или backend.
+- Документация и отчёт соответствуют фактическому исправлению.
 - Создан отдельный PR в `main`.
-- После завершения статус задачи изменён на `DONE`.
+- После завершения статус задачи установлен в `DONE`.
 
 ## Restrictions
-- Не ограничиваться косметической заменой текста ошибки без поиска причины.
-- Не доверять переданному клиентом `telegram_id`.
-- Не логировать Telegram init data, токены и секреты.
-- Не хардкодить production/tunnel URL и секреты.
-- Не менять игровую экономику, цены и relationship balance.
-- Не менять DB schema и Alembic revisions без доказанной необходимости; при такой необходимости остановиться и зафиксировать blocker вместо расширения scope.
-- Не добавлять новые внешние сервисы и зависимости без доказанной необходимости.
-- Не обращаться к реальной Telegram/Railway сети из автоматических тестов.
-- Не добавлять `frontend/node_modules/`, `dist/`, coverage artifacts, screenshots и другие generated-файлы.
+- Не коммитить `frontend/node_modules/`, `dist/`, coverage и другие generated artifacts.
+- Не удалять `package-lock.json` как постоянное решение без доказанной необходимости.
+- Не добавлять тяжёлый Docker/build stack, если достаточно исправления npm/lock/config.
+- Не менять Railway secrets и production variables из кода.
 - Не выполнять production deploy и merge.
-- Не делать несвязанный рефакторинг.
+- Не делать несвязанный frontend/backend рефакторинг.
 - Не продолжать работу после установки статуса `DONE`.
