@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from .models import MarinaMemory, User
 from .personality import RECENT_MEMORY_LIMIT, build_personality_reply
-from .schemas import GameActionResponse, MarinaChatResponse, PlayerResponse
+from .schemas import DayAdvanceResponse, GameActionResponse, MarinaChatResponse, PlayerResponse
 
 
 def clamp(value: int) -> int:
@@ -107,3 +107,63 @@ async def apply_game_action(*, session: AsyncSession, user: User, action: str) -
         message=message,
         player=PlayerResponse.model_validate(user),
     )
+
+PERIOD_ORDER = ("morning", "day", "evening", "night")
+PERIOD_DELTAS: dict[str, dict[str, int]] = {
+    # Daytime activity gradually consumes energy and hunger while keeping mood/calm changes small.
+    "day": {"energy": -8, "hunger": -6, "mood": 1, "calm": -2},
+    "evening": {"energy": -10, "hunger": -7, "mood": -1, "calm": 1},
+    "night": {"energy": -12, "hunger": -5, "mood": -2, "calm": 3},
+    # Sleeping into a new morning is the only period transition that restores needs strongly.
+    "morning": {"energy": 28, "hunger": -8, "mood": 4, "calm": 12},
+}
+PERIOD_MESSAGES = {
+    "day": "Наступил день. Марина готова продолжать дела вместе с тобой.",
+    "evening": "Наступил вечер. Марине хочется спокойного тепла рядом.",
+    "night": "Наступила ночь. Марина начинает уставать и готовится отдыхать.",
+    "morning": "Наступило новое утро. Марина отдохнула и встречает день спокойнее.",
+}
+PERIOD_EMOTIONS = {
+    "day": "smile",
+    "evening": "thoughtful",
+    "night": "sleepy",
+    "morning": "happy",
+}
+
+
+def next_period(current_period: str) -> tuple[str, bool]:
+    try:
+        index = PERIOD_ORDER.index(current_period)
+    except ValueError:
+        index = 0
+    next_index = (index + 1) % len(PERIOD_ORDER)
+    next_value = PERIOD_ORDER[next_index]
+    return next_value, current_period == "night"
+
+
+def apply_day_advance_state(user: User) -> str:
+    marina = user.marina
+    next_value, increments_day = next_period(marina.period)
+    marina.period = next_value
+    if increments_day:
+        marina.day += 1
+
+    deltas = PERIOD_DELTAS[next_value]
+    marina.energy = clamp(marina.energy + deltas["energy"])
+    marina.hunger = clamp(marina.hunger + deltas["hunger"])
+    marina.mood = clamp(marina.mood + deltas["mood"])
+    marina.calm = clamp(marina.calm + deltas["calm"])
+    return PERIOD_MESSAGES[next_value]
+
+
+async def advance_day_period(*, session: AsyncSession, user: User) -> DayAdvanceResponse:
+    message = apply_day_advance_state(user)
+    marina = user.marina
+    session.add(MarinaMemory(
+        user_id=user.id,
+        role="event",
+        content=f"День {marina.day}: наступил период {marina.period}.",
+        emotion=PERIOD_EMOTIONS[marina.period],
+    ))
+    await session.flush()
+    return DayAdvanceResponse(message=message, player=PlayerResponse.model_validate(user))

@@ -62,3 +62,9 @@
 - Added `backend/app/personality.py` for deterministic local chat intent classification, emotional-tone variants and safe recent user-memory selection without external AI services.
 - Updated chat service orchestration to use the personality policy while preserving `/api/v1/chat` response schema, state mutation bounds, memory persistence and idempotency behavior.
 - Added backend tests for intent classification, emotional-state tone differences, safe memory selection/filtering, current-message exclusion, chat persistence/schema, and idempotent replay/conflict regression coverage.
+
+## TASK-012 — Safe day-period progression
+- Added deterministic Marina period advancement over existing `day`/`period` fields without database schema or Alembic changes.
+- Added Telegram-authenticated `POST /api/v1/day/advance` with persisted idempotency, one event memory per real transition, and HTTP 409 same-key/different-payload conflict handling.
+- Added frontend `Продолжить день` control with idempotency payloads, pending duplicate protection, success state updates, haptic success, and error recovery.
+- Added backend and frontend tests for period cycle, clamped state deltas, auth/idempotency behavior, memory persistence, and UI request/update/error flows.

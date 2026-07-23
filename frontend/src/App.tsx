@@ -29,6 +29,7 @@ type Player = {
 }
 
 type ActionResponse = { message: string; player: Player }
+type DayAdvanceResponse = { message: string; player: Player }
 type ChatResponse = { reply: string; emotion: string; remembered?: string | null; player: Player }
 type ChatLine = { role: 'user' | 'marina'; text: string }
 type MarinaEmotion = 'neutral' | 'smile' | 'happy' | 'sad' | 'sleepy' | 'surprised' | 'thoughtful' | 'shy'
@@ -82,6 +83,7 @@ export default function App() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [busyAction, setBusyAction] = useState<string | null>(null)
+  const [dayBusy, setDayBusy] = useState(false)
   const [message, setMessage] = useState('Доброе утро ☀️ Как ты спал? Я уже успела соскучиться.')
   const [chatOpen, setChatOpen] = useState(false)
   const [chatInput, setChatInput] = useState('')
@@ -135,14 +137,14 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    if (!player || busyAction || chatOpen || chatBusy) return
+    if (!player || busyAction || dayBusy || chatOpen || chatBusy) return
     const timer = window.setInterval(() => {
       if (actionActiveRef.current) return
       const lines = idleLines[emotionRef.current]
       setMessage(lines[Math.floor(Math.random() * lines.length)])
     }, 45000)
     return () => window.clearInterval(timer)
-  }, [player, busyAction, chatOpen, chatBusy])
+  }, [player, busyAction, dayBusy, chatOpen, chatBusy])
 
   function showVisual(visual: MarinaVisual, duration: number) {
     if (visualTimer.current !== null) window.clearTimeout(visualTimer.current)
@@ -181,6 +183,33 @@ export default function App() {
       setError(reason instanceof Error ? reason.message : 'Не удалось выполнить действие')
       window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('error')
     } finally { setBusyAction(null) }
+  }
+
+  async function advanceDay() {
+    if (dayBusy) return
+    const initData = window.Telegram?.WebApp?.initData || ''
+    if (!initData) return
+    setDayBusy(true)
+    setError(null)
+    try {
+      const payload = createMutationPayload({ init_data: initData })
+      const response = await fetch(`${API_URL}/api/v1/day/advance`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload), cache: 'no-store',
+      })
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null)
+        throw new Error(payload?.detail || `Ошибка перехода дня: ${response.status}`)
+      }
+      const result: DayAdvanceResponse = await response.json()
+      setPlayer(result.player)
+      setMessage(result.message)
+      applyEmotion(deriveEmotion(result.player))
+      window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success')
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Не удалось продолжить день')
+      window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('error')
+    } finally { setDayBusy(false) }
   }
 
   async function sendChat(event: FormEvent) {
@@ -239,7 +268,7 @@ export default function App() {
   return (
     <main className="game-shell">
       <section className="hud-panel">
-        <div className="time-card"><strong>{timeLabel}</strong><span>День {marina.day}</span><small><Sun size={15}/> {periodLabel}</small></div>
+        <div className="time-card"><strong>{timeLabel}</strong><span>День {marina.day}</span><small><Sun size={15}/> {periodLabel}</small><button type="button" onClick={() => void advanceDay()} disabled={dayBusy || busyAction !== null || chatBusy}>{dayBusy ? 'Переходим…' : 'Продолжить день'}</button></div>
         <div className="stats-row">{stats.map(({ label, value, icon: Icon, className }) => (
           <article className={`mini-stat ${className}`} key={label}><div><Icon size={17}/><span>{label}</span></div><strong>{value}/100</strong><div className="meter"><i style={{ width: `${Math.min(100, value)}%` }}/></div></article>
         ))}</div>

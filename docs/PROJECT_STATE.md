@@ -10,16 +10,17 @@
 - Entry point: `frontend/src/main.tsx`; current app shell and gameplay UI live primarily in `frontend/src/App.tsx`.
 - The frontend initializes Telegram WebApp APIs, reads `initData`, authenticates through the backend, renders Marina visuals from `frontend/public/marina/` assets, and calls backend chat/action endpoints.
 - API base URL comes from `VITE_API_URL`; when absent, code falls back to the current Railway backend URL.
-- Chat/action frontend requests include backend-compatible `idempotency_key` values generated per intentional user mutation; helper behavior is covered by Vitest unit tests and critical Telegram auth/chat/action React flows are covered by Vitest/jsdom integration tests with mocked Telegram WebApp and fetch.
+- Chat/action frontend requests include backend-compatible `idempotency_key` values generated per intentional user mutation; helper behavior is covered by Vitest unit tests and critical Telegram auth/chat/action/day-advance React flows are covered by Vitest/jsdom integration tests with mocked Telegram WebApp and fetch.
 
 ## Backend
 - FastAPI + async SQLAlchemy + PostgreSQL.
-- Entry point: `backend/app/main.py`; deployment command runs `uvicorn app.main:app`. Chat/action route handlers now delegate gameplay/economy mutations to `backend/app/game_services.py`, and chat replies delegate deterministic intent/emotional-tone/memory policy to `backend/app/personality.py`.
+- Entry point: `backend/app/main.py`; deployment command runs `uvicorn app.main:app`. Chat/action/day-advance route handlers now delegate gameplay/economy/period mutations to `backend/app/game_services.py`, and chat replies delegate deterministic intent/emotional-tone/memory policy to `backend/app/personality.py`.
 - Runtime schema creation has been removed from the FastAPI lifespan; schema management is represented by Alembic configuration and a baseline migration that handles empty databases and existing create_all-created schemas.
 - The baseline downgrade is intentionally irreversible to prevent accidental deletion of adopted pre-Alembic tables and user data.
 - Production CORS origins are read from `CORS_ORIGINS`; localhost origins are denied by default and added only when `ENVIRONMENT`/`APP_ENV` explicitly selects a local/development/test environment.
-- Economy-changing chat and action requests support optional idempotency keys backed by persisted idempotency records with request fingerprints; reusing a key with a different payload returns HTTP 409.
-- Telegram authentication is enforced for `/api/v1/auth/telegram`, `/api/v1/chat`, and `/api/v1/actions` through `TELEGRAM_BOT_TOKEN` validation.
+- Economy-changing chat/action requests and day-period advancement support optional idempotency keys backed by persisted idempotency records with request fingerprints; reusing a key with a different payload returns HTTP 409.
+- Telegram authentication is enforced for `/api/v1/auth/telegram`, `/api/v1/chat`, `/api/v1/actions`, and `/api/v1/day/advance` through `TELEGRAM_BOT_TOKEN` validation.
+- Marina day progression uses existing `day`/`period` fields with deterministic `morning → day → evening → night → morning` transitions, small clamped need deltas, event-memory persistence, and no database schema changes.
 - Former unauthenticated player helper endpoints `POST /api/v1/players` and `GET /api/v1/players/{telegram_id}` have been removed; player records are created or loaded through Telegram-authenticated auth/chat/action flows.
 
 ## Database and Migrations

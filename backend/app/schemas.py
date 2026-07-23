@@ -46,6 +46,17 @@ class GameActionResponse(BaseModel):
     player: PlayerResponse
 
 
+class DayAdvanceRequest(BaseModel):
+    init_data: str
+    advance: str = Field(default="period", max_length=32)
+    idempotency_key: str | None = Field(default=None, max_length=128)
+
+
+class DayAdvanceResponse(BaseModel):
+    message: str
+    player: PlayerResponse
+
+
 class MarinaChatRequest(BaseModel):
     init_data: str
     message: str = Field(min_length=1, max_length=500)
