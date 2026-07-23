@@ -60,5 +60,5 @@ SUCCESS
 YES
 
 ## Commit / PR
-- Implementation commit: TBD
-- Pull Request: TBD
+- Implementation commit: 5c508c1d88ebd6ae8df1756883c2c330cd367cad
+- Pull Request: https://github.com/VetZell/game_test/pull/13
