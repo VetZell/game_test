@@ -1,126 +1,113 @@
 # Current Task
 
 ## Task ID
-TASK-016
+TASK-017
 
 ## Status
-DONE
+READY
 
 ## Priority
 High
 
 ## Title
-Найти и устранить причину сетевого отказа Frontend → Backend в Telegram Mini App
+Исправить production PostgreSQL migration для отсутствующей таблицы `idempotency_records`
 
 ## Goal
-Установить и устранить реальную production-причину, по которой игровые действия в Telegram Mini App, включая `Выпить кофе`, завершаются сообщением `Не удалось подключиться к серверу.`, несмотря на успешный деплой frontend и backend. Исправление должно обеспечить фактическое прохождение action request от production frontend до backend и корректное применение серверного ответа.
+Устранить подтверждённую production-ошибку игровых действий, при которой запросы успешно доходят до backend, но завершаются HTTP 500 из-за отсутствующей в PostgreSQL таблицы `idempotency_records`. Обеспечить корректное применение Alembic migration в production и защиту от повторения такой рассинхронизации схемы.
 
 ## Context
-- PR #13 с обработкой action-ошибок слит и backend успешно задеплоен.
-- PR #14 с исправлением Rollup musl build слит, актуальный frontend успешно собран и задеплоен.
-- Новый frontend уже показывает безопасное сообщение `Не удалось подключиться к серверу.` и кнопку `Повторить`, поэтому TASK-014 подтверждена.
-- При выполнении действия запрос всё ещё завершается на уровне network/fetch failure либо блокируется до получения HTTP response.
-- Нельзя ограничиваться дальнейшим изменением текста ошибки: требуется доказанная диагностика production connectivity.
+- Frontend и backend успешно задеплоены.
+- CORS исправлен: preflight `OPTIONS` для action/day endpoints проходит.
+- Backend получает запросы из Telegram Mini App.
+- Production logs подтверждают ошибку:
+  - `UndefinedTableError: relation "idempotency_records" does not exist`.
+- Ошибка возникает при обработке idempotent mutation-запросов (`/api/v1/actions`, `/api/v1/day/advance` и других mutation flows).
+- Таблицу нельзя создавать вручную SQL-командой: схема должна управляться только Alembic.
 
 ## Instructions
-1. Начать работу от актуального `main` после merge PR #14.
-2. Выполнить обязательную startup-синхронизацию и чтение файлов согласно `AGENTS.md` и `docs/CODEX_PROTOCOL.md`.
-3. Создать отдельную ветку для TASK-016.
-4. Провести аудит полного production action path:
-   - `frontend/src/App.tsx` и все API/fetch helpers;
-   - выбор и нормализация API base URL;
-   - `VITE_API_URL` и fallback behavior;
-   - итоговый URL и endpoint action mutation;
-   - `frontend/Dockerfile`, `frontend/railway.json`, root/build configuration;
-   - backend CORS configuration;
-   - backend route `/api/v1/actions` и `/health`;
-   - Railway public backend URL, задокументированный или используемый в коде.
-5. Точно установить, какой URL попадает в production bundle. Не предполагать значение `VITE_API_URL`: подтвердить это анализом build-time config, generated bundle или воспроизводимым тестом.
-6. Проверить типовые причины сетевого отказа:
-   - неправильный или устаревший backend hostname;
-   - отсутствие build-time `VITE_API_URL`;
-   - неверный path/двойной slash;
-   - CORS preflight/allowed origins/headers/methods;
-   - HTTPS/mixed-content;
-   - redirect, DNS или TLS failure;
-   - backend bind/health/public-domain mismatch;
-   - Telegram iOS WebView behavior;
-   - request timeout/abort.
-7. Различить network rejection и HTTP error. Если сервер отвечает HTTP status, frontend не должен классифицировать это как отсутствие соединения.
-8. Добавить безопасную структурированную диагностику action request минимум с:
-   - origin frontend;
-   - безопасным API base URL и endpoint без query/secrets;
-   - request method;
-   - elapsed time;
-   - HTTP status, если получен;
-   - error name/message/category;
-   - без `init_data`, токенов, cookies и других секретов.
-9. Не добавлять пользователю debug URL, stack trace или секреты. Диагностика предназначена только для developer console/logging.
-10. Исправить подтверждённую причину минимальным устойчивым способом:
-    - использовать существующий Vite/environment pattern;
-    - не хардкодить временный tunnel;
-    - не добавлять секреты в репозиторий;
-    - сохранить безопасный development fallback;
-    - при необходимости нормализовать URL централизованно.
-11. Если проблема требует Railway variable/config change, добавить versioned repository config или точную документацию с обязательным именем/значением переменной. Не заявлять, что внешняя Railway variable изменена, если Codex не имеет доступа подтвердить это.
-12. Добавить frontend tests минимум для:
-    - production API URL selection;
-    - корректного action endpoint;
-    - URL normalization;
-    - network rejection;
-    - HTTP 401/409/422/500 не классифицируются как network failure;
-    - retry использует тот же корректный API base URL.
-13. Добавить backend tests для CORS/preflight action endpoint, если аудит показывает, что CORS релевантен или меняется.
-14. Не менять игровую экономику, action effects, Telegram identity/auth semantics, DB schema, day progression, personality/memory или UI вне необходимой диагностики.
-15. Проверить все mutation flows, использующие тот же API base URL: auth/bootstrap, chat, action и day advance. Исправление не должно починить только `coffee`, оставив другие запросы на неправильном host.
-16. Обновить `README.md`, `docs/ARCHITECTURE.md`, `docs/PROJECT_STATE.md`, `docs/TECH_DEBT.md`, `docs/ROADMAP.md`, `docs/CHANGELOG.md` только по фактически выполненным изменениям.
-17. Полностью заменить `docs/REPORT.md` отчётом TASK-016. Отчёт обязан содержать:
-    - точную найденную причину;
-    - доказательство причины;
-    - фактический production URL/path до и после исправления;
-    - почему запрос теперь может дойти до backend;
-    - какие ограничения production-проверки остаются.
-18. После завершения изменить статус задачи на `DONE`, сделать commit, push и открыть отдельный PR в `main`.
-19. Merge и production deploy не выполнять.
+1. Выполнить обязательную startup-синхронизацию и чтение файлов согласно `AGENTS.md` и `docs/CODEX_PROTOCOL.md`.
+2. Начать работу от актуального `main` после merge TASK-016/PR #15.
+3. Создать отдельную ветку для TASK-017.
+4. Провести аудит migration state:
+   - `backend/alembic.ini`;
+   - `backend/alembic/env.py`;
+   - все файлы `backend/alembic/versions/`;
+   - модель `IdempotencyRecord` и таблицу `idempotency_records`;
+   - deployment/migration scripts (`scripts/`, Dockerfile, Railway config, README/docs).
+5. Точно установить:
+   - существует ли migration, создающая `idempotency_records`;
+   - входит ли она в текущий Alembic `head`;
+   - почему production database оказалась без таблицы;
+   - запускались ли migrations автоматически или требовали ручного шага.
+6. Если migration отсутствует — создать корректную Alembic revision, которая безопасно создаёт `idempotency_records` со всеми полями, индексами и constraints, соответствующими SQLAlchemy model.
+7. Если migration уже существует — не дублировать таблицу. Исправить реальную причину, по которой `alembic upgrade head` не применялся или не включал нужную revision.
+8. Не использовать `Base.metadata.create_all()` как production workaround.
+9. Не добавлять ручные SQL-команды создания таблицы в runtime startup.
+10. Обеспечить безопасный и воспроизводимый migration path для:
+    - пустой базы;
+    - существующей production-like базы без `idempotency_records`;
+    - базы, уже находящейся на актуальном head.
+11. Добавить regression tests, которые подтверждают минимум:
+    - `alembic upgrade head` создаёт `idempotency_records`;
+    - повторный upgrade не ломает схему;
+    - таблица соответствует model metadata по обязательным колонкам/ключам;
+    - action/idempotency endpoint после migration не падает с `UndefinedTableError`.
+12. Проверить существующие migration scripts и deployment docs. При необходимости добавить точную команду для Railway backend:
+    - если Root Directory = repository root: `cd backend && alembic upgrade head`;
+    - если Root Directory = `backend`: `alembic upgrade head`.
+13. Не утверждать, что production migration фактически выполнена, если Codex не имеет доступа к Railway production database. В этом случае подготовить repository fix и точную operator instruction.
+14. Не менять игровую экономику, action effects, Telegram auth semantics, CORS, frontend UI или personality/memory logic.
+15. Обновить только релевантные документы:
+    - `README.md`;
+    - `docs/ARCHITECTURE.md`;
+    - `docs/PROJECT_STATE.md`;
+    - `docs/TECH_DEBT.md`;
+    - `docs/ROADMAP.md`;
+    - `docs/CHANGELOG.md`;
+    - `docs/REPORT.md`.
+16. В `docs/REPORT.md` указать:
+    - точную причину отсутствия таблицы;
+    - существовала ли migration;
+    - почему production её не получил;
+    - какие файлы изменены;
+    - результаты migration tests;
+    - какие production-действия ещё требуется выполнить вручную.
+17. После завершения изменить статус задачи на `DONE`, сделать commit, push и открыть отдельный PR в `main`.
+18. Merge и production deploy не выполнять.
 
 ## Validation
 - `git status --short --branch`
 - `git diff --check`
-- `cd frontend && rm -rf node_modules dist && npm ci`
-- `cd frontend && npm test -- --run`
-- `cd frontend && npm run build`
-- проверить generated production bundle на ожидаемый API hostname/path без секретов
+- `cd backend && alembic heads`
+- `cd backend && alembic current`
 - `cd backend && pytest -q`
 - `cd backend && python -m compileall .`
 - `cd backend && python -c 'from app.main import app; print(app.title, app.version)'`
-- `cd backend && alembic heads`
-- если публичный backend URL доступен без секретов — проверить `GET /health` и зафиксировать HTTP status; не выполнять реальное игровое действие с пользовательскими данными
+- выполнить migration test на чистой temporary database
+- выполнить upgrade test на production-like temporary database без `idempotency_records`
+- подтвердить, что после `alembic upgrade head` таблица `idempotency_records` существует
+- подтвердить, что повторный `alembic upgrade head` идемпотентен
 
-Если production Railway variables или Telegram WebView недоступны в среде Codex, точно указать это в `docs/REPORT.md`. Не заявлять о полном production исправлении только на основании unit tests; доказать repository/config root cause максимально доступными средствами.
+Если реальный PostgreSQL/Railway недоступен, использовать доступный PostgreSQL-compatible test environment либо честно зафиксировать ограничение. Не заявлять о production успехе без подтверждения.
 
 ## Acceptance Criteria
-- Точная причина network/fetch failure установлена и зафиксирована доказательствами.
-- Production frontend формирует правильный HTTPS backend base URL и action endpoint.
-- `VITE_API_URL`/fallback behavior детерминированы и покрыты тестами.
-- CORS/preflight корректны для production frontend origin, если запрос cross-origin.
-- HTTP ошибки не отображаются как отсутствие соединения.
-- Все frontend mutation flows используют единый исправленный API base URL.
-- Action request может фактически дойти до backend после нового production build/deploy.
-- Пользовательское состояние не изменяется при неподтверждённом запросе; retry продолжает работать.
-- Секреты и Telegram `init_data` не попадают в логи или bundle.
-- Frontend tests/build и backend tests проходят.
-- Документация соответствует фактическому исправлению и внешним Railway requirements.
+- Причина отсутствия `idempotency_records` установлена и задокументирована.
+- Alembic graph содержит корректный единственный head.
+- `alembic upgrade head` создаёт требуемую таблицу без ручного SQL.
+- Существующая база безопасно обновляется.
+- Повторный migration run не вызывает ошибок.
+- Action/idempotency flows после migration не падают с `UndefinedTableError`.
+- Добавлены regression tests migration/schema behavior.
+- Production operator instruction для Railway точна и не содержит секретов.
+- Не внесены несвязанные изменения.
 - Создан отдельный PR в `main`.
 - После завершения статус задачи установлен в `DONE`.
 
 ## Restrictions
-- Не ограничиваться изменением пользовательского сообщения об ошибке.
-- Не хардкодить временные URL, tunnel domain, токены или секреты.
-- Не логировать Telegram `init_data`, bot token, cookies или authorization data.
-- Не выполнять реальные пользовательские action mutations против production.
-- Не менять DB schema и Alembic revisions без доказанной необходимости; при такой необходимости остановиться и зафиксировать blocker.
-- Не менять игровую экономику и unrelated UI/backend behavior.
-- Не добавлять новые внешние сервисы или тяжёлые зависимости.
-- Не коммитить `node_modules`, `dist`, coverage, screenshots и другие generated artifacts.
-- Не выполнять production deploy и merge.
+- Не создавать таблицу вручную в Railway SQL console.
+- Не использовать runtime `create_all()` как production fix.
+- Не удалять или пересоздавать production data.
+- Не выполнять destructive downgrade против production.
+- Не коммитить DATABASE_URL, токены, пароли или другие secrets.
+- Не выполнять merge и production deploy.
 - Не продолжать работу после установки статуса `DONE`.
