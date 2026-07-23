@@ -27,5 +27,12 @@
     "typescript": "^5.7.2",
     "vite": "^6.0.3",
     "vitest": "^4.1.10"
+  },
+  "optionalDependencies": {
+    "@rollup/rollup-linux-x64-musl": "4.62.2"
+  },
+  "engines": {
+    "node": ">=20.19.0 <23",
+    "npm": ">=10 <12"
   }
 }

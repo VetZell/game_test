@@ -30,8 +30,8 @@
 
 ## Deployment
 - Root and backend Dockerfiles include Alembic assets plus `scripts/` in the backend runtime image and run the FastAPI backend with Uvicorn only.
-- Frontend Dockerfile builds static Vite output and serves it with `serve`.
-- Railway JSON files define Dockerfile builders and healthcheck paths for root/backend/frontend deployment layouts; migrations are run separately before API deploy/start and `/health` verification.
+- Frontend Dockerfile builds static Vite output with deterministic `npm ci --include=dev --include=optional`, includes the locked Rollup Linux x64 musl optional package for Railway Alpine builds, and serves `dist` with `serve`.
+- Railway JSON files define Dockerfile builders and healthcheck paths for root/backend/frontend deployment layouts; frontend Railway root remains `frontend`, while backend migrations are run separately before API deploy/start and `/health` verification.
 
 ## Current Workflow
 - ChatGPT writes the active task into `docs/TASK.md`.
@@ -54,3 +54,7 @@
 ## TASK-014 Action Error Recovery
 - Action mutation failures now use centralized frontend status/network mapping, safe developer diagnostics, retry with a new idempotency key, and preserved local player state until a confirmed backend success.
 - Backend action regression coverage explicitly verifies coffee success, Telegram auth rejection, idempotent replay, conflict 409 and response contract.
+
+## TASK-015 Railway Frontend Build
+- Frontend dependency installation is pinned to Node `>=20.19.0 <23` and npm `>=10 <12`, the Railway frontend Docker build uses `npm ci --include=dev --include=optional`, and the lockfile explicitly contains `@rollup/rollup-linux-x64-musl@4.62.2` for Alpine/Linux musl Rollup resolution.
+- New frontend deployment can be distinguished from the stale deployment by verifying TASK-014 action error recovery behavior in the Mini App without adding a user-visible debug banner.

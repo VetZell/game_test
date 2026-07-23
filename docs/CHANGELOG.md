@@ -80,3 +80,8 @@
 - Added last failed action retry from the error panel; retry creates a fresh mutation payload/idempotency key and applies backend state only after confirmed success.
 - Added structured safe action diagnostics without Telegram `init_data` or secrets.
 - Expanded frontend integration tests and backend action endpoint regression tests for coffee success, auth rejection, idempotent replay, conflict 409 and action response contract.
+
+## TASK-015 — Railway frontend Rollup musl build fix
+- Added the Rollup Linux x64 musl native package as a locked optional frontend dependency so Railway Alpine/Linux musl installs can resolve Rollup's native loader deterministically.
+- Added frontend Node/npm engine constraints and changed `frontend/Dockerfile` build install to `npm ci --include=dev --include=optional` before `npm run build`.
+- Documented the Railway frontend root/build expectations and post-deploy verification without adding a user-visible debug banner.
