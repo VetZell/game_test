@@ -6,10 +6,10 @@
 ## Repository layout
 - `frontend/` — React + TypeScript + Vite Telegram Mini App frontend.
   - `frontend/src/main.tsx` mounts React and imports global styles.
-  - `frontend/src/App.tsx` contains the current single-page game shell, Telegram WebApp initialization, API calls, local UI state, Marina visuals, action buttons, day-advance control, and chat overlay.
+  - `frontend/src/App.tsx` contains the current single-page game shell, Telegram WebApp initialization, API calls, local UI state, centralized emotion display mapping, Marina visuals, action cards, day-advance control, and chat overlay.
   - `frontend/src/mutationPayload.ts` builds chat/action/day-advance mutation payloads with per-request `idempotency_key` values.
   - `frontend/src/mutationPayload.test.ts` covers idempotency key generation and mutation payload behavior with Vitest in Node mode.
-  - `frontend/src/App.integration.test.tsx` covers Telegram-auth, chat, action, day-advance, pending-duplicate and error-recovery flows with mocked Telegram WebApp and fetch in Vitest/jsdom.
+  - `frontend/src/App.integration.test.tsx` covers Telegram-auth, chat, action, day-advance, emotion fallback/synchronization, pending/disabled controls, inactive navigation and error-recovery flows with mocked Telegram WebApp and fetch in Vitest/jsdom.
   - `frontend/src/telegram.d.ts` declares the Telegram WebApp browser API used by the app.
   - `frontend/public/marina/` and `frontend/public/marina/v2/` contain Marina image assets and manifests.
   - `frontend/Dockerfile`, `frontend/railway.json`, and `frontend/serve.json` describe the static frontend deployment.
@@ -100,7 +100,12 @@
 ## Current boundaries and known limitations
 - Documentation changes in TASK-004 do not change runtime behavior, API contracts, UI, game balance, or database schema.
 - Backend chat orchestration remains in `backend/app/game_services.py`, while deterministic Marina personality and safe memory-selection policy is isolated in `backend/app/personality.py`; action economy remains in `game_services.py`.
-- Frontend sends idempotency keys with chat/action/day-advance mutation payloads, and React-level Vitest/jsdom integration tests cover critical mocked auth, chat and action flows.
+- Frontend sends idempotency keys with chat/action/day-advance mutation payloads, uses a centralized emotion key → label → visual/tone mapping with repository asset fallbacks, and React-level Vitest/jsdom integration tests cover critical mocked auth, chat, action, day-advance, emotion and accessibility flows.
 - The former unauthenticated player helper endpoints `POST /api/v1/players` and `GET /api/v1/players/{telegram_id}` are removed; player creation/loading happens through Telegram-authenticated flows only.
 - Deployment does not automatically run Alembic migrations; operators must run/verify `./scripts/migrate.sh` separately before API rollout and `/health` verification.
 - PostgreSQL migration rollout needs staging/production-like validation.
+
+## TASK-013 UI polish notes
+- Emotion keys `love` and `caring` intentionally reuse existing repository visuals (`happy` and `thoughtful`) because no separate image files are present for those exact keys.
+- The bottom navigation exposes only the working home control as an interactive button; unavailable sections are visually muted non-interactive placeholders.
+- `frontend/src/index.css` is formatted with custom properties, safe-area padding, period-aware scene classes, focus-visible styles, and reduced-motion handling.

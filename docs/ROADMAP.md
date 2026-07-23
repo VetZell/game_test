@@ -14,6 +14,7 @@
 - TASK-010 frontend integration tests for critical Telegram auth, chat and action flows.
 - TASK-011 deterministic Marina personality and safe memory-response policy for chat replies.
 - TASK-012 safe day-period progression with Telegram-authenticated idempotent backend endpoint and frontend control.
+- TASK-013 frontend interface polish for emotion/action/day state hierarchy, accessibility, responsive safe-area layout and tests.
 
 ## Next
 1. Validate Alembic upgrade, explicit migration command, and irreversible-downgrade failure behavior against a PostgreSQL staging/production-like database copy.

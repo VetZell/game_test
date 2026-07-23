@@ -68,3 +68,9 @@
 - Added Telegram-authenticated `POST /api/v1/day/advance` with persisted idempotency, one event memory per real transition, and HTTP 409 same-key/different-payload conflict handling.
 - Added frontend `Продолжить день` control with idempotency payloads, pending duplicate protection, success state updates, haptic success, and error recovery.
 - Added backend and frontend tests for period cycle, clamped state deltas, auth/idempotency behavior, memory persistence, and UI request/update/error flows.
+
+## TASK-013 — Frontend interface, emotion and state polish
+- Centralized frontend emotion display mapping for supported backend emotion keys, including safe visual fallbacks for `love`, `caring` and unknown emotion values.
+- Polished the Telegram Mini App screen hierarchy with a compact HUD, clearer day-advance control, period-aware CSS scene tones, action card pending/disabled/success feedback, muted non-interactive navigation placeholders and chat/accessibility improvements.
+- Reformatted `frontend/src/index.css` with CSS custom properties, safe-area handling, mobile layout rules, focus-visible styling and reduced-motion support without adding runtime dependencies.
+- Expanded Vitest/jsdom integration coverage for emotion synchronization, unknown fallback, day/action pending states, inactive controls and accessibility attributes.
