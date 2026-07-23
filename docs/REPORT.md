@@ -46,10 +46,11 @@ SUCCESS
 - PASS — `cd frontend && npm run build`
 - PASS — `node - <<'NODE' ... compact HUD CSS/mobile assertions ... NODE`
 - PASS — `cd backend && pytest -q`
-- WARNING — `which chromium || which chromium-browser || which google-chrome || node -e "try{require('playwright'); console.log('playwright installed')}catch(e){console.error('playwright not installed'); process.exit(1)}"` — screenshot capture unavailable in this container because no browser/Playwright runtime is installed.
+- PASS — `cd frontend && npm install --no-save playwright@1.57.0 && npx playwright install chromium`
+- PASS — Playwright mocked mobile screenshot capture at 390 px; generated screenshot artifact was removed before commit.
 
 ## Risks
-- No physical iPhone/Telegram WebView screenshot was captured in this container because no browser/Playwright/Chromium runtime is installed. Layout was verified through responsive CSS structure, jsdom DOM assertions, TypeScript build and Vite production build.
+- No physical iPhone/Telegram WebView screenshot was captured; browser validation used Playwright Chromium with mocked Telegram/fetch at mobile viewport, plus responsive CSS structure, jsdom DOM assertions, TypeScript build and Vite production build.
 - The mobile stats row intentionally scrolls horizontally inside the HUD at narrow widths; this keeps all five stats accessible without creating whole-page horizontal overflow.
 
 ## Technical Debt
@@ -59,5 +60,5 @@ SUCCESS
 YES
 
 ## Commit / PR
-- Implementation commit: becc618be542811bdbc9692ad90451aa1ec99ff9
+- Review-fix commit pushed to PR: 5826634c7d3734516ccba7c2756ea01310464157
 - Pull Request: https://github.com/VetZell/game_test/pull/17
