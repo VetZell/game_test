@@ -368,4 +368,108 @@ describe('App Telegram integration flows', () => {
     await screen.findByText('Наступил день.')
   })
 
+
+  it('shows friendly action network errors instead of raw Load failed and preserves state', async () => {
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(player({ experience: 120 })))
+      .mockRejectedValueOnce(new TypeError('Load failed'))
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<App />)
+    await waitFor(() => expectExperience(120))
+
+    const coffeeButton = screen.getByRole('button', { name: /Выпить кофе/i })
+    await userEvent.click(coffeeButton)
+
+    expect(await screen.findByText('Не удалось подключиться к серверу.')).toBeInTheDocument()
+    expect(screen.queryByText('Load failed')).not.toBeInTheDocument()
+    expectExperience(120)
+    await waitFor(() => expect(coffeeButton).not.toBeDisabled())
+    expect(screen.getByRole('button', { name: 'Повторить' })).toBeInTheDocument()
+    expect(consoleSpy).toHaveBeenCalledWith('Action request failed', expect.objectContaining({ endpoint: '/api/v1/actions' }))
+  })
+
+  it('maps action HTTP auth and server errors to friendly messages', async () => {
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(player({ experience: 120 })))
+      .mockResolvedValueOnce(jsonResponse({ detail: 'raw auth detail' }, { status: 401 }))
+      .mockResolvedValueOnce(jsonResponse({ detail: '<html>server down</html>' }, { status: 503 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<App />)
+    await waitFor(() => expectExperience(120))
+
+    const coffeeButton = screen.getByRole('button', { name: /Выпить кофе/i })
+    await userEvent.click(coffeeButton)
+    expect(await screen.findByText('Не удалось подтвердить авторизацию Telegram.')).toBeInTheDocument()
+    expect(screen.queryByText('raw auth detail')).not.toBeInTheDocument()
+    await waitFor(() => expect(coffeeButton).not.toBeDisabled())
+
+    await userEvent.click(coffeeButton)
+    expect(await screen.findByText('Сервер временно недоступен. Попробуйте ещё раз.')).toBeInTheDocument()
+    expect(screen.queryByText('<html>server down</html>')).not.toBeInTheDocument()
+    expectExperience(120)
+    expect(consoleSpy).toHaveBeenCalled()
+  })
+
+  it('retries the last failed action with a new idempotency key and applies success once', async () => {
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(player({ coins: 75, experience: 120 })))
+      .mockRejectedValueOnce(new TypeError('Load failed'))
+      .mockResolvedValueOnce(jsonResponse({
+        message: 'Спасибо! Такой кофе — идеальное начало утра ☕',
+        player: player({ coins: 60, experience: 124, marina: { ...player().marina, energy: 98, mood: 82 } }),
+      }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<App />)
+    await waitFor(() => expectExperience(120))
+
+    await userEvent.click(screen.getByRole('button', { name: /Выпить кофе/i }))
+    expect(await screen.findByText('Не удалось подключиться к серверу.')).toBeInTheDocument()
+    const retryButton = screen.getByRole('button', { name: 'Повторить' })
+    await userEvent.click(retryButton)
+
+    expect(await screen.findByText('Спасибо! Такой кофе — идеальное начало утра ☕')).toBeInTheDocument()
+    expectExperience(124)
+    expect(screen.getByText('60')).toBeInTheDocument()
+    expect(fetchMock).toHaveBeenCalledTimes(3)
+    expect(requestBody(fetchMock.mock.calls[1]).idempotency_key).toBe('integration-key-1')
+    expect(requestBody(fetchMock.mock.calls[2]).idempotency_key).toBe('integration-key-2')
+    expect(requestBody(fetchMock.mock.calls[2]).action).toBe('coffee')
+    expect(screen.queryByRole('button', { name: 'Повторить' })).not.toBeInTheDocument()
+    expect(consoleSpy).toHaveBeenCalledTimes(1)
+  })
+
+  it('maps action conflict and validation errors without false local success', async () => {
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(player({ experience: 120 })))
+      .mockResolvedValueOnce(jsonResponse({ detail: 'conflict detail' }, { status: 409 }))
+      .mockResolvedValueOnce(jsonResponse({ detail: 'validation detail' }, { status: 422 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<App />)
+    await waitFor(() => expectExperience(120))
+
+    const coffeeButton = screen.getByRole('button', { name: /Выпить кофе/i })
+    await userEvent.click(coffeeButton)
+    expect(await screen.findByText('Запрос уже обрабатывался. Повторите действие ещё раз.')).toBeInTheDocument()
+    expectExperience(120)
+    await waitFor(() => expect(coffeeButton).not.toBeDisabled())
+
+    await userEvent.click(coffeeButton)
+    expect(await screen.findByText('Действие сейчас выполнить нельзя.')).toBeInTheDocument()
+    expect(screen.queryByText('validation detail')).not.toBeInTheDocument()
+    expectExperience(120)
+    expect(consoleSpy).toHaveBeenCalled()
+  })
+
 })

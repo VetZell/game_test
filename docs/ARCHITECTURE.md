@@ -9,7 +9,7 @@
   - `frontend/src/App.tsx` contains the current single-page game shell, Telegram WebApp initialization, API calls, local UI state, centralized emotion display mapping, Marina visuals, action cards, day-advance control, and chat overlay.
   - `frontend/src/mutationPayload.ts` builds chat/action/day-advance mutation payloads with per-request `idempotency_key` values.
   - `frontend/src/mutationPayload.test.ts` covers idempotency key generation and mutation payload behavior with Vitest in Node mode.
-  - `frontend/src/App.integration.test.tsx` covers Telegram-auth, chat, action, day-advance, emotion fallback/synchronization, pending/disabled controls, inactive navigation and error-recovery flows with mocked Telegram WebApp and fetch in Vitest/jsdom.
+  - `frontend/src/App.integration.test.tsx` covers Telegram-auth, chat, action, action error mapping/retry, day-advance, emotion fallback/synchronization, pending/disabled controls, inactive navigation and error-recovery flows with mocked Telegram WebApp and fetch in Vitest/jsdom.
   - `frontend/src/telegram.d.ts` declares the Telegram WebApp browser API used by the app.
   - `frontend/public/marina/` and `frontend/public/marina/v2/` contain Marina image assets and manifests.
   - `frontend/Dockerfile`, `frontend/railway.json`, and `frontend/serve.json` describe the static frontend deployment.
@@ -68,7 +68,7 @@
 - When a key is supplied, the backend stores a response and SHA-256 request fingerprint.
 - Reusing the same key with the same payload replays the stored response.
 - Reusing the same key with a different payload returns HTTP 409.
-- Frontend chat/action/day-advance calls build mutation payloads with a fresh `idempotency_key` for each intentional user request.
+- Frontend chat/action/day-advance calls build mutation payloads with a fresh `idempotency_key` for each intentional user request. Action failures are mapped to user-safe Russian messages, store the last failed action for one-click retry, and retry creates a new idempotency key.
 
 ## Migrations and database
 - Runtime `Base.metadata.create_all()` is not used by FastAPI startup.
@@ -109,3 +109,8 @@
 - Emotion keys `love` and `caring` intentionally reuse existing repository visuals (`happy` and `thoughtful`) because no separate image files are present for those exact keys.
 - The bottom navigation exposes only the working home control as an interactive button; unavailable sections are visually muted non-interactive placeholders.
 - `frontend/src/index.css` is formatted with custom properties, safe-area padding, period-aware scene classes, focus-visible styles, and reduced-motion handling.
+
+## TASK-014 action error recovery
+- Action request failures are centrally mapped in `frontend/src/App.tsx`: network/`Load failed`, auth, conflict, validation/unavailable and server errors no longer display raw technical text to users.
+- The action error panel offers `Повторить` for the last failed action; retry rebuilds the mutation payload with a fresh idempotency key and does not mutate local state until the backend returns success.
+- Developer diagnostics use structured `console.error` with endpoint/status/safe detail and do not include Telegram `init_data` or secrets.
