@@ -4,7 +4,7 @@
 TASK-018
 
 ## Status
-READY
+DONE
 
 ## Priority
 Medium
