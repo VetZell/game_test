@@ -157,7 +157,7 @@ describe('App Telegram integration flows', () => {
     expect(screen.getByRole('button', { name: /Продолжить день/i })).toHaveClass('compact-advance-button')
 
     const stats = within(screen.getByLabelText('Характеристики Марины'))
-    for (const label of ['Любовь', 'Сытость', 'Энергия', 'Спокойствие', 'Доверие']) {
+    for (const label of ['Любовь', 'Настроение', 'Сытость', 'Энергия', 'Спокойствие']) {
       expect(stats.getByText(label)).toBeInTheDocument()
     }
     expect(screen.getAllByRole('article')).toHaveLength(5)

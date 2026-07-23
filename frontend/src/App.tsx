@@ -337,10 +337,10 @@ export default function App() {
     const m = player?.marina
     return [
       { label: 'Любовь', value: m?.love ?? 50, icon: Heart, className: 'pink' },
+      { label: 'Настроение', value: m?.mood ?? 70, icon: Smile, className: 'orange' },
       { label: 'Сытость', value: m?.hunger ?? 80, icon: Utensils, className: 'green' },
       { label: 'Энергия', value: m?.energy ?? 100, icon: Zap, className: 'blue' },
       { label: 'Спокойствие', value: m?.calm ?? 75, icon: ShieldCheck, className: 'purple' },
-      { label: 'Доверие', value: m?.trust ?? 50, icon: Smile, className: 'orange' },
     ]
   }, [player])
 
@@ -372,7 +372,7 @@ export default function App() {
             aria-busy={dayBusy}
             aria-label={dayBusy ? 'Переходим к следующему периоду дня' : `Продолжить день → ${currentPeriod.nextLabel}`}
           >
-            {dayBusy ? 'Переходим…' : `Продолжить → ${currentPeriod.nextLabel}`}
+            {dayBusy ? 'Переход…' : `→ ${currentPeriod.nextLabel}`}
           </button>
         </div>
         <div className="stats-row compact-stats-row" aria-label="Характеристики Марины">

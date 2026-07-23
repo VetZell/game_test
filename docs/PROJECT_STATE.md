@@ -72,5 +72,5 @@
 - Operators still must run the Railway backend migration command against the real production PostgreSQL database before claiming production success.
 
 ## TASK-018 Compact Status Bar
-- The top mobile HUD is now shorter: time/day/period share one compact line/card, the day-advance button uses shorter copy while keeping an accessible label, and Love/Hunger/Energy/Calm/Trust stats are compact cards with thinner progress meters in a horizontally scrollable mobile row.
+- The top mobile HUD is now shorter: time/day/period share one compact line/card, the day-advance button uses shorter copy while keeping an accessible label, and Love/Mood/Hunger/Energy/Calm stats are compact cards with thinner progress meters in a horizontally scrollable mobile row.
 - Scene content starts after a smaller HUD gap/padding while desktop/tablet keeps a two-column HUD and the same scene/action/navigation structure.
