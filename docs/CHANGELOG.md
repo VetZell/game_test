@@ -74,3 +74,9 @@
 - Polished the Telegram Mini App screen hierarchy with a compact HUD, clearer day-advance control, period-aware CSS scene tones, action card pending/disabled/success feedback, muted non-interactive navigation placeholders and chat/accessibility improvements.
 - Reformatted `frontend/src/index.css` with CSS custom properties, safe-area handling, mobile layout rules, focus-visible styling and reduced-motion support without adding runtime dependencies.
 - Expanded Vitest/jsdom integration coverage for emotion synchronization, unknown fallback, day/action pending states, inactive controls and accessibility attributes.
+
+## TASK-014 — Action mutation error recovery
+- Replaced raw action failure display with centralized user-safe Russian error mapping for network/`Load failed`, auth, conflict, validation/unavailable, server and unknown failures.
+- Added last failed action retry from the error panel; retry creates a fresh mutation payload/idempotency key and applies backend state only after confirmed success.
+- Added structured safe action diagnostics without Telegram `init_data` or secrets.
+- Expanded frontend integration tests and backend action endpoint regression tests for coffee success, auth rejection, idempotent replay, conflict 409 and action response contract.

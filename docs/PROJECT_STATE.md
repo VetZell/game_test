@@ -10,7 +10,7 @@
 - Entry point: `frontend/src/main.tsx`; current app shell and gameplay UI live primarily in `frontend/src/App.tsx`.
 - The frontend initializes Telegram WebApp APIs, reads `initData`, authenticates through the backend, renders Marina visuals from `frontend/public/marina/` assets through a centralized emotion display mapping, and calls backend chat/action/day-advance endpoints.
 - API base URL comes from `VITE_API_URL`; when absent, code falls back to the current Railway backend URL.
-- Chat/action/day-advance frontend requests include backend-compatible `idempotency_key` values generated per intentional user mutation; helper behavior is covered by Vitest unit tests and critical Telegram auth/chat/action/day-advance/emotion React flows are covered by Vitest/jsdom integration tests with mocked Telegram WebApp and fetch.
+- Chat/action/day-advance frontend requests include backend-compatible `idempotency_key` values generated per intentional user mutation; action failures are converted to safe user-facing messages with retry support; helper behavior is covered by Vitest unit tests and critical Telegram auth/chat/action/action-error-retry/day-advance/emotion React flows are covered by Vitest/jsdom integration tests with mocked Telegram WebApp and fetch.
 
 ## Backend
 - FastAPI + async SQLAlchemy + PostgreSQL.
@@ -50,3 +50,7 @@
 ## TASK-013 Frontend UI State
 - The main Telegram Mini App screen now has a polished HUD, period-aware scene styling, synchronized emotion label/visual/tone mapping, clearer action cards, explicit day-advance target text, non-interactive placeholders for unavailable navigation sections, safe-area CSS, focus-visible styling, reduced-motion support and updated integration coverage.
 - No backend API, database schema, Alembic revision, auth, idempotency semantics, personality policy or action economy changed in TASK-013.
+
+## TASK-014 Action Error Recovery
+- Action mutation failures now use centralized frontend status/network mapping, safe developer diagnostics, retry with a new idempotency key, and preserved local player state until a confirmed backend success.
+- Backend action regression coverage explicitly verifies coffee success, Telegram auth rejection, idempotent replay, conflict 409 and response contract.

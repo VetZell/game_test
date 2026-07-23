@@ -32,6 +32,8 @@ type ActionResponse = { message: string; player: Player }
 type DayAdvanceResponse = { message: string; player: Player }
 type ChatResponse = { reply: string; emotion: string; remembered?: string | null; player: Player }
 type ChatLine = { role: 'user' | 'marina'; text: string }
+type LastFailedAction = { action: string; visual: MarinaVisual; duration: number }
+type ActionRequestError = Error & { status?: number; safeDetail?: string }
 type MarinaEmotion = 'neutral' | 'smile' | 'happy' | 'love' | 'caring' | 'sad' | 'sleepy' | 'surprised' | 'thoughtful' | 'shy'
 type MarinaVisual = 'neutral' | 'smile' | 'happy' | 'sad' | 'sleepy' | 'surprised' | 'thoughtful' | 'shy' | 'coffee' | 'breakfast' | 'kiss' | 'movie' | 'walk' | 'talk'
 
@@ -84,6 +86,37 @@ const periodMeta: Record<string, { label: string; time: string; next: string; ne
   night: { label: 'Спокойной ночи', time: '23:00', next: 'morning', nextLabel: 'новому утру' },
 }
 
+
+function actionErrorMessage(status?: number, reason?: unknown): string {
+  if (status === 401 || status === 403) return 'Не удалось подтвердить авторизацию Telegram.'
+  if (status === 409) return 'Запрос уже обрабатывался. Повторите действие ещё раз.'
+  if (status === 422 || status === 400) return 'Действие сейчас выполнить нельзя.'
+  if (status !== undefined && status >= 500) return 'Сервер временно недоступен. Попробуйте ещё раз.'
+  if (reason instanceof TypeError) return 'Не удалось подключиться к серверу.'
+  if (reason instanceof Error && /load failed|failed to fetch|network/i.test(reason.message)) {
+    return 'Не удалось подключиться к серверу.'
+  }
+  return 'Не удалось выполнить действие.'
+}
+
+function toActionRequestError(status: number, safeDetail?: string): ActionRequestError {
+  const error = new Error(safeDetail || `Action request failed with HTTP ${status}`) as ActionRequestError
+  error.status = status
+  error.safeDetail = safeDetail
+  return error
+}
+
+function logActionError(endpoint: string, reason: unknown) {
+  const status = reason instanceof Error && 'status' in reason ? (reason as ActionRequestError).status : undefined
+  const safeDetail = reason instanceof Error && 'safeDetail' in reason ? (reason as ActionRequestError).safeDetail : undefined
+  console.error('Action request failed', {
+    endpoint,
+    status,
+    detail: safeDetail || (reason instanceof Error ? reason.message : 'unknown error'),
+    error: reason instanceof Error ? reason : undefined,
+  })
+}
+
 function deriveEmotion(player: Player): MarinaEmotion {
   const m = player.marina
   if (m.period === 'night' || m.energy <= 22) return 'sleepy'
@@ -101,6 +134,7 @@ export default function App() {
   const [loading, setLoading] = useState(true)
   const [busyAction, setBusyAction] = useState<string | null>(null)
   const [dayBusy, setDayBusy] = useState(false)
+  const [lastFailedAction, setLastFailedAction] = useState<LastFailedAction | null>(null)
   const [message, setMessage] = useState('Доброе утро ☀️ Как ты спал? Я уже успела соскучиться.')
   const [chatOpen, setChatOpen] = useState(false)
   const [chatInput, setChatInput] = useState('')
@@ -184,18 +218,20 @@ export default function App() {
     if (busyAction) return
     const initData = window.Telegram?.WebApp?.initData || ''
     if (!initData) return
+    const endpoint = `${API_URL}/api/v1/actions`
     showVisual(visual, duration)
     setBusyAction(action)
     setError(null)
+    setLastFailedAction(null)
     try {
       const payload = createMutationPayload({ init_data: initData, action })
-      const response = await fetch(`${API_URL}/api/v1/actions`, {
+      const response = await fetch(endpoint, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload), cache: 'no-store',
       })
       if (!response.ok) {
         const payload = await response.json().catch(() => null)
-        throw new Error(payload?.detail || `Ошибка действия: ${response.status}`)
+        throw toActionRequestError(response.status, typeof payload?.detail === 'string' ? payload.detail : undefined)
       }
       const result: ActionResponse = await response.json()
       setPlayer(result.player)
@@ -203,9 +239,22 @@ export default function App() {
       applyEmotion(deriveEmotion(result.player))
       window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success')
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Не удалось выполнить действие')
+      logActionError('/api/v1/actions', reason)
+      setError(actionErrorMessage(reason instanceof Error && 'status' in reason ? (reason as ActionRequestError).status : undefined, reason))
+      setLastFailedAction({ action, visual, duration })
+      actionActiveRef.current = false
+      if (visualTimer.current !== null) {
+        window.clearTimeout(visualTimer.current)
+        visualTimer.current = null
+      }
+      setActiveVisual(emotionConfig[emotionRef.current].visual)
       window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('error')
     } finally { setBusyAction(null) }
+  }
+
+  function retryLastAction() {
+    if (!lastFailedAction || busyAction) return
+    void performAction(lastFailedAction.action, lastFailedAction.visual, lastFailedAction.duration)
   }
 
   async function advanceDay() {
@@ -322,7 +371,7 @@ export default function App() {
           <div className="action-art"><img src={`/marina/v2/${visual}.webp`} alt="" aria-hidden="true" loading="lazy"/><span className="action-icon"><Icon size={21} aria-hidden="true"/></span></div>
           <strong>{busyAction === id ? 'Выполняем…' : title}</strong><small>{reward}</small><em>{cost}</em>
         </button>
-      ))}</div>{error && <div className="error-card" role="alert">{error}</div>}<small className="version">{APP_VERSION} · опыт {currentPlayer.experience}</small></section>
+      ))}</div>{error && <div className="error-card" role="alert"><span>{error}</span>{lastFailedAction && <button type="button" onClick={retryLastAction} disabled={busyAction !== null} aria-busy={busyAction === lastFailedAction.action}>Повторить</button>}</div>}<small className="version">{APP_VERSION} · опыт {currentPlayer.experience}</small></section>
 
       <nav className="bottom-nav" aria-label="Основная навигация"><button type="button" className="active" aria-current="page"><Home size={23} aria-hidden="true"/><span>Главная</span></button><span className="nav-placeholder">Скоро: магазин</span><span className="nav-placeholder">Гардероб</span><span className="nav-placeholder">Комната</span></nav>
 

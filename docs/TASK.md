@@ -4,7 +4,7 @@
 TASK-014
 
 ## Status
-READY
+DONE
 
 ## Priority
 High
