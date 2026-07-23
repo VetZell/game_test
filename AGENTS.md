@@ -2,11 +2,29 @@
 
 This repository uses a file-based task workflow.
 
-Before making changes, read in this order:
-1. `docs/CODEX_PROTOCOL.md`
-2. `docs/PROJECT_STATE.md`
-3. `docs/TECH_DEBT.md`
-4. `docs/TASK.md`
+## Mandatory startup synchronization
+
+When the user sends the exact command `выполни`, Codex must perform the following startup sequence automatically before reading or changing task files:
+
+```bash
+git fetch origin
+git checkout main
+git reset --hard origin/main
+```
+
+The user must never be required to type or repeat these commands manually.
+
+After synchronization, read in this order:
+1. `AGENTS.md`
+2. `docs/CODEX_PROTOCOL.md`
+3. `docs/AI_CONTEXT.md`
+4. `docs/PROJECT_STATE.md`
+5. `docs/TECH_DEBT.md`
+6. `docs/TASK.md`
+
+Reading `docs/TASK.md` directly with `cat` is optional; Codex may use any reliable file-reading method available in its environment.
+
+Do not run the hard-reset startup sequence for the command `слей`, because the completed `docs/TASK.md` and `docs/REPORT.md` may exist on the task branch or Pull Request being verified. Follow the dedicated merge workflow instead.
 
 Only execute a task when `docs/TASK.md` contains `Status: READY`.
 After completing it, update `docs/REPORT.md` and all project documentation required by the protocol.
@@ -18,18 +36,19 @@ The user may control Codex with these exact short commands:
 
 ### `выполни`
 Treat this as:
-1. Read all required workflow files.
-2. Execute only the active task from `docs/TASK.md` when its status is `READY`.
-3. Run validation, update the report and required documentation.
-4. Commit and push the task branch and create or update the Pull Request when available.
-5. Set the task status to `DONE` after successful completion.
-6. Do not merge.
+1. Automatically synchronize local `main` with `origin/main` using the mandatory startup sequence above.
+2. Read all required workflow files.
+3. Execute only the active task from `docs/TASK.md` when its status is `READY`.
+4. Run validation, update the report and required documentation.
+5. Commit and push the task branch and create or update the Pull Request when available.
+6. Set the task status to `DONE` after successful completion.
+7. Do not merge.
 
 ### `слей`
 Treat this as an explicit user authorization to merge the completed task Pull Request.
 Before merging, verify all of the following:
-1. `docs/TASK.md` has status `DONE`.
-2. `docs/REPORT.md` has `Status: SUCCESS` and `Safe To Merge: YES`.
+1. `docs/TASK.md` in the task branch or Pull Request has status `DONE`.
+2. `docs/REPORT.md` in the task branch or Pull Request has `Status: SUCCESS` and `Safe To Merge: YES`.
 3. The referenced Pull Request exists, is open, targets `main`, and is mergeable.
 4. Required validation reported by the task passed.
 5. There are no uncommitted task changes that should be included.
