@@ -58,5 +58,5 @@ SUCCESS
 YES
 
 ## Commit / PR
-- Implementation commit: pending
-- Pull Request: pending
+- Implementation commit: 8bf173edc276e68cccb388c60343d9d992645a3c
+- Pull Request: https://github.com/VetZell/game_test/pull/17
