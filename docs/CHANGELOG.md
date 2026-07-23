@@ -58,3 +58,7 @@
 - Added Vitest/jsdom React integration tests for Telegram auth success and error loading states with mocked Telegram WebApp and fetch.
 - Added integration tests for chat and action requests, including `init_data`, non-empty `idempotency_key`, successful state updates, pending action duplicate protection, and chat HTTP error recovery.
 - Added Testing Library/jsdom devDependencies only and updated frontend/project documentation without changing UI, backend API, gameplay, idempotency semantics or database schema.
+## TASK-011 — Marina personality and memory response policy
+- Added `backend/app/personality.py` for deterministic local chat intent classification, emotional-tone variants and safe recent user-memory selection without external AI services.
+- Updated chat service orchestration to use the personality policy while preserving `/api/v1/chat` response schema, state mutation bounds, memory persistence and idempotency behavior.
+- Added backend tests for intent classification, emotional-state tone differences, safe memory selection/filtering, current-message exclusion, chat persistence/schema, and idempotent replay/conflict regression coverage.

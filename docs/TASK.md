@@ -4,7 +4,7 @@
 TASK-011
 
 ## Status
-READY
+DONE
 
 ## Priority
 Medium
