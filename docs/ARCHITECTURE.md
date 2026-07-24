@@ -91,6 +91,8 @@
 - Backend Docker command runs only `uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}` and does not run Alembic migrations automatically.
 - Operators run migrations separately with `./scripts/migrate.sh` or the Railway shell command `alembic upgrade head`, both requiring `DATABASE_URL`; root-directory deployments should run `cd backend && alembic upgrade head`.
 - Railway configs define Dockerfile builds and health checks; migration, API start/deploy, and `/health` verification are separate rollout steps.
+- Railway connected branch and automatic deployment settings are Railway service UI state, not repository JSON state; production frontend and backend services must use source branch `main` with automatic deploys enabled, while `task-*` branches are PR/preview-only.
+- The GitHub `CI` workflow runs on pushes and pull requests targeting `main`; if Railway `Wait for CI` is enabled, operators must verify the required workflow exists and passes so production deploys are not blocked.
 - Frontend Docker builds with `npm run build` and serves `dist` using `serve` on `${PORT:-3000}`.
 - Application image rollback must not use destructive database downgrade; baseline downgrade is intentionally irreversible.
 
@@ -121,3 +123,7 @@
 ## TASK-018 compact top HUD
 - The top HUD uses `compact-hud`, `compact-time-card`, `compact-advance-button`, `compact-stats-row`, `compact-mini-stat` and `compact-meter` structure so mobile CSS can keep day/time/period, next-period action and five key stats visible without tall stacked cards.
 - At mobile widths the stats row scrolls horizontally inside the HUD while page-level `overflow-x` remains hidden, preserving access to all stats without creating whole-page horizontal overflow.
+
+## TASK-019 Railway production deploy source
+- Repository audit found `railway.json`, `frontend/railway.json`, and `backend/railway.json` contain Dockerfile/healthcheck/restart settings only and no branch selector; the observed production service attachment to `task-017-production-idempotency-migration` is therefore Railway UI/source configuration rather than repository config.
+- Production release invariant: frontend and backend Railway production services must be connected to `main`, have automatic deploys enabled for `main`, and must not use `task-*` branches except for separately configured preview environments.

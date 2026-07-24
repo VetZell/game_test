@@ -1,6 +1,7 @@
 # Technical Debt
 
 ## High
+- In Railway UI, set both production services to source branch `main`, enable automatic deployments for commits to `main`, verify `Wait for CI` is not blocking without a green required workflow, trigger one latest-`main` deployment, and confirm the next merge to `main` deploys automatically.
 - Run `alembic upgrade head` against the real Railway production PostgreSQL database, then verify `idempotency_records` exists and action/day idempotent mutations no longer raise `UndefinedTableError`; repository SQLite tests cover clean and baseline-stamped missing-table paths, but Codex cannot access the live production DB.
 
 ## Low

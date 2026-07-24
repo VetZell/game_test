@@ -32,7 +32,7 @@
 ## Deployment
 - Root and backend Dockerfiles include Alembic assets plus `scripts/` in the backend runtime image and run the FastAPI backend with Uvicorn only.
 - Frontend Dockerfile builds static Vite output with deterministic `npm ci --include=dev --include=optional`, includes the locked Rollup Linux x64 musl optional package for Railway Alpine builds, and serves `dist` with `serve`.
-- Railway JSON files define Dockerfile builders and healthcheck paths for root/backend/frontend deployment layouts; frontend Railway root remains `frontend`, while backend migrations are run separately before API deploy/start and `/health` verification.
+- Railway JSON files define Dockerfile builders and healthcheck paths for root/backend/frontend deployment layouts; frontend Railway root remains `frontend`, while backend migrations are run separately before API deploy/start and `/health` verification. Railway production service source-branch/auto-deploy toggles are not stored in these files and must be set in Railway UI: frontend and backend production services track `main`, not `task-*` branches.
 
 ## Current Workflow
 - ChatGPT writes the active task into `docs/TASK.md`.
@@ -74,3 +74,7 @@
 ## TASK-018 Compact Status Bar
 - The top mobile HUD is now shorter: time/day/period share one compact line/card, the day-advance button uses shorter copy while keeping an accessible label, and Love/Mood/Hunger/Energy/Calm stats are compact cards with thinner progress meters in a horizontally scrollable mobile row.
 - Scene content starts after a smaller HUD gap/padding while desktop/tablet keeps a two-column HUD and the same scene/action/navigation structure.
+
+## TASK-019 Railway Main Auto Deploy
+- Repository deployment config was audited for branch-specific production settings: `railway.json`, `frontend/railway.json`, `backend/railway.json`, Dockerfiles and `.github/workflows/ci.yml` do not pin production to a `task-*` branch.
+- The confirmed deployment blocker is Railway service UI/source configuration shown by the user: production was connected to a task branch, so merges to `main` could not trigger production automatically. Codex cannot change Railway UI without Railway project credentials, so the repository now documents the operator checklist and invariant `production source branch = main` for both frontend and backend services.
