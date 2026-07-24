@@ -1,126 +1,160 @@
 # Current Task
 
 ## Task ID
-TASK-019
+TASK-020
 
 ## Status
-DONE
+READY
 
 ## Priority
 High
 
 ## Title
-Исправить Railway production deploy: привязать frontend и backend к `main` и включить автоматический деплой после merge
+Исправить mobile layout: убрать наложения, обрезание карточек и конфликт нижней навигации со сценой
 
 ## Goal
-Устранить ситуацию, при которой production-сервисы Railway остаются подключены к временной task-ветке и после слияния PR в `main` не получают новое обновление автоматически. Production frontend и backend должны отслеживать только `main`, а успешный merge в `main` должен автоматически запускать соответствующий deployment без ручного выбора очередной task-ветки.
+Привести мобильный интерфейс Telegram Mini App к аккуратной, устойчивой компоновке на iPhone/WebView: верхний HUD должен полностью помещаться по ширине, карточки не должны обрезаться, нижняя навигация не должна перекрывать сцену, блок «Фокус сейчас» и кнопку «Поговорить», а ключевые элементы должны оставаться читаемыми и доступными без визуальных конфликтов.
 
 ## Context
-- TASK-018/PR #17 готовится к merge.
-- На скриншоте Railway production frontend подключён к ветке `task-017-production-idempotency-migration`, а в списке вручную выбираются следующие task-ветки.
-- Из-за такой настройки merge PR в `main` не приводит к автоматическому production deployment.
-- Временные ветки `task-*` предназначены только для разработки и PR, а не как постоянный production source branch.
-- Репозиторий может содержать Railway config и deployment documentation, но фактическая branch connection/automatic deployment setting может находиться только в Railway UI и потребовать отдельного действия оператора.
+- TASK-018 сделал верхний HUD компактнее, но production screenshot показывает новые/оставшиеся mobile-layout проблемы.
+- На ширине iPhone верхняя строка характеристик частично обрезается справа: карточка «Настроение» выходит за видимую область.
+- Нижняя навигация визуально накладывается на нижнюю часть сцены и конфликтует с блоком «Фокус сейчас» и кнопкой «Поговорить».
+- Тексты пунктов нижней навигации («Скоро: магазин», «Гардероб», «Комната») сжаты и частично перекрываются.
+- Основная сцена, floating cards и navigation имеют недостаточно чёткие границы по слоям, высоте и safe-area.
+- Скриншот production mobile layout является обязательным ориентиром для воспроизведения проблемы.
 
 ## Instructions
 1. Выполнить обязательную startup-синхронизацию и чтение файлов согласно `AGENTS.md` и `docs/CODEX_PROTOCOL.md`.
-2. Начать работу от актуального `main` после merge TASK-018/PR #17.
-3. Создать отдельную ветку для TASK-019.
-4. Провести аудит всех deployment-настроек репозитория:
-   - root `railway.json` / `railway.toml`, если существуют;
-   - `frontend/railway.json` / `frontend/railway.toml`;
-   - `backend/railway.json` / `backend/railway.toml`;
-   - Dockerfiles;
-   - build/start commands;
-   - README и deployment-разделы документов;
-   - GitHub Actions/workflows, если они участвуют в deploy.
-5. Установить и задокументировать точную причину ручного выбора ветки:
-   - production Railway service connected to a `task-*` branch instead of `main`;
-   - automatic deployment trigger disabled or waiting for CI;
-   - либо другая подтверждённая причина.
-6. Не утверждать, что Railway UI изменён, если Codex не имеет доступа к Railway project settings.
-7. Подготовить корректную production configuration policy:
-   - frontend production service source branch: `main`;
-   - backend production service source branch: `main`;
-   - automatic deploy on new commit to `main`: enabled;
-   - временные `task-*` branches не должны быть production source;
-   - PR branches могут использоваться только для preview environments, если это явно настроено отдельно.
-8. Проверить, не мешают ли автодеплою repository config или workflow settings:
-   - неверный root directory;
-   - branch-specific build config;
-   - disabled deploy trigger;
-   - `Wait for CI` при отсутствии/неуспешном required workflow;
-   - несовпадение frontend/backend service paths;
-   - manual-only deployment configuration.
-9. Если проблема исправляется кодом/config-файлами репозитория — внести минимально необходимые изменения.
-10. Если проблема находится только в Railway UI — не пытаться имитировать исправление кодом. Вместо этого добавить точную operator instruction для обоих production-сервисов:
-    - открыть service → Settings/Source;
-    - изменить connected branch на `main`;
-    - включить automatic deployment trigger;
-    - при наличии `Wait for CI` либо подтвердить рабочий required workflow, либо отключить ожидание до появления CI;
-    - сохранить настройки;
-    - один раз запустить deployment последнего commit `main`;
-    - проверить, что следующий merge в `main` создаёт deployment автоматически.
-11. Добавить безопасную проверку/guardrail в документацию или workflow, чтобы production не оставался на `task-*` ветке незаметно. Допустимые варианты:
-    - deployment checklist;
-    - documented source-branch invariant;
-    - CI/check script, проверяющий repository-side assumptions, если Railway branch metadata недоступна;
-    - release checklist с обязательной проверкой branch=`main`.
-12. Не добавлять Railway API tokens, project IDs, environment secrets или другие credentials в репозиторий.
-13. Не менять gameplay, frontend UI, backend API, economy, database schema, Telegram auth, CORS или personality logic.
-14. Обновить только релевантные документы:
-    - `README.md`;
+2. Начать работу от актуального `main` после merge TASK-019/PR #18.
+3. Создать отдельную ветку для TASK-020.
+4. Провести аудит mobile layout минимум в:
+   - `frontend/src/App.tsx`;
+   - `frontend/src/index.css`;
+   - frontend integration tests;
+   - всех компонентах/селекторных блоках, отвечающих за HUD, scene panel, floating cards, chat CTA и bottom navigation.
+5. Воспроизвести layout минимум на viewport:
+   - 320 × 568;
+   - 375 × 667;
+   - 390 × 844;
+   - 430 × 932.
+6. Исправить верхний HUD:
+   - не допускать обрезания карточек справа;
+   - не допускать page-level horizontal overflow;
+   - если характеристики остаются горизонтально прокручиваемыми, сделать это визуально очевидно и удобно;
+   - первая карточка и активная область не должны начинаться/заканчиваться под обрезанным контейнером;
+   - сохранить исходный набор показателей и их значения;
+   - не скрывать основные показатели в modal/menu.
+7. Исправить нижнюю навигацию:
+   - navigation не должна перекрывать «Фокус сейчас», кнопку «Поговорить» или важную часть сцены;
+   - учесть `env(safe-area-inset-bottom)`;
+   - обеспечить достаточный нижний padding основного content flow;
+   - пункты навигации должны помещаться без наложения текста друг на друга;
+   - активный пункт «Главная» должен оставаться читаемым;
+   - неактивные пункты можно сделать компактнее, но не превращать в нечитаемый текст;
+   - navigation должна иметь устойчивую высоту и z-index без визуального конфликта с scene overlays.
+8. Переработать расположение блока «Фокус сейчас» и кнопки «Поговорить»:
+   - они не должны перекрывать нижнюю навигацию;
+   - не должны выходить за границы scene panel;
+   - на узких экранах допускается адаптивная перестройка в две строки или компактная вертикальная компоновка;
+   - сохранить удобную touch target area кнопки.
+9. Проверить floating cards в верхней части сцены:
+   - карточка монет/кристаллов и карточка Марины не должны пересекаться;
+   - текст ответа Марины не должен обрезаться или выходить за карточку;
+   - обеспечить читаемость на 320–430 px.
+10. Проверить высоту scene panel:
+    - сцена должна занимать экран рационально;
+    - персонаж не должен быть критично обрезан из-за внутренних overlays;
+    - не использовать фиксированную высоту, которая ломает небольшие экраны, без адаптивного fallback.
+11. Обеспечить корректный stacking context:
+    - HUD;
+    - scene image;
+    - scene overlays;
+    - chat CTA;
+    - bottom navigation;
+    - Telegram safe-area.
+12. Не менять:
+    - backend API;
+    - игровую экономику;
+    - значения характеристик;
+    - day progression;
+    - Telegram auth;
+    - CORS;
+    - database/Alembic;
+    - personality/memory logic;
+    - контент действий и диалогов, кроме минимальной адаптации текста/разметки для предотвращения обрезания.
+13. Сохранить accessibility:
+    - touch target не менее разумного mobile размера;
+    - focus-visible;
+    - aria labels;
+    - reduced motion;
+    - достаточный контраст.
+14. Добавить/обновить frontend tests минимум для:
+    - наличия всех пяти характеристик;
+    - отсутствия удаления/подмены показателей;
+    - сохранения working day-advance button;
+    - наличия bottom navigation и активного пункта;
+    - корректной DOM-структуры scene-bottom controls;
+    - отсутствия регрессии кнопки «Поговорить».
+15. Добавить устойчивую responsive validation:
+    - Playwright/Chromium mobile screenshots или DOM/CSS assertions на 320, 390 и 430 px;
+    - проверить отсутствие page-level horizontal overflow;
+    - проверить, что bounding boxes bottom navigation и scene-bottom controls не пересекаются;
+    - проверить, что HUD cards доступны в пределах scroll container.
+16. Не коммитить generated screenshots, `node_modules`, `dist`, coverage или другие artifacts.
+17. Обновить только релевантные документы:
     - `docs/ARCHITECTURE.md`;
     - `docs/PROJECT_STATE.md`;
     - `docs/ROADMAP.md`;
-    - `docs/TECH_DEBT.md`;
+    - `docs/TECH_DEBT.md` при необходимости;
     - `docs/CHANGELOG.md`;
     - `docs/REPORT.md`.
-15. В `docs/REPORT.md` указать:
-    - подтверждённую причину отсутствия автоматического deploy после merge;
-    - какие repository configs проверены;
-    - какие файлы изменены;
-    - какие действия выполнены кодом;
-    - какие действия должен выполнить оператор в Railway UI;
-    - как проверить первый и следующий автоматический deploy;
-    - ограничения доступа Codex к Railway settings.
-16. После завершения изменить статус задачи на `DONE`, сделать commit, push и открыть отдельный PR в `main`.
-17. Merge и изменение production Railway settings от имени пользователя не выполнять.
+18. В `docs/REPORT.md` указать:
+    - точные причины каждого визуального конфликта;
+    - какие CSS/layout решения применены;
+    - как учтены safe-area и z-index;
+    - результаты viewport checks;
+    - какие screenshots/Playwright checks выполнены;
+    - ограничения проверки реального Telegram WebView, если применимо.
+19. После завершения изменить статус задачи на `DONE`, сделать commit, push и открыть отдельный PR в `main`.
+20. Merge и production deploy не выполнять.
 
 ## Validation
 - `git status --short --branch`
 - `git diff --check`
-- проверить все Railway config files и service root/build/start expectations
-- проверить GitHub workflows, связанные с frontend/backend build or deploy
-- подтвердить, что repository documentation однозначно требует production source branch `main`
-- подтвердить отсутствие секретов и branch-specific task names в production config
-- выполнить существующие frontend/backend tests только если изменены runtime/build config files
-
-## Production Verification
-После merge TASK-019 оператор должен проверить в Railway для frontend и backend:
-1. Connected branch = `main`.
-2. Automatic deployments enabled.
-3. `Wait for CI` не блокирует deployment без рабочего required workflow.
-4. Последний commit `main` задеплоен в production.
-5. Следующий тестовый merge в `main` автоматически создаёт deployment без ручного выбора ветки.
-6. Frontend и backend deployment используют один и тот же актуальный `main` commit или ожидаемую пару commit/deployment revisions.
+- `cd frontend && npm ci`
+- `cd frontend && npm test -- --run`
+- `cd frontend && npm run build`
+- проверить viewport 320 × 568
+- проверить viewport 375 × 667
+- проверить viewport 390 × 844
+- проверить viewport 430 × 932
+- подтвердить отсутствие page-level horizontal overflow
+- подтвердить отсутствие overlap между bottom navigation и scene-bottom controls
+- подтвердить, что HUD cards не обрезаются недоступным образом
+- подтвердить, что кнопки day advance и «Поговорить» доступны и работают
+- `cd backend && pytest -q` только как regression check, если затронут общий test setup/config
 
 ## Acceptance Criteria
-- Причина ручного выбора task-ветки подтверждена и задокументирована.
-- Production policy для обоих Railway services закреплена: source branch только `main`.
-- Repository deployment config не содержит привязки к `task-*` веткам.
-- Точная инструкция изменения Railway UI подготовлена, если Codex не может изменить настройку напрямую.
-- Automatic deployment after merge в `main` имеет однозначный verification procedure.
-- Не внесены несвязанные runtime/gameplay изменения.
-- Не добавлены секреты.
+- Верхний HUD не обрезает карточки недоступным образом.
+- Вся страница не имеет горизонтального overflow.
+- Нижняя навигация не перекрывает сцену, «Фокус сейчас» и кнопку «Поговорить».
+- Тексты navigation items не накладываются друг на друга.
+- Floating cards внутри сцены не пересекаются и не обрезают текст.
+- Все ключевые элементы читаемы на ширинах 320–430 px.
+- Safe-area iPhone/Telegram WebView учтён сверху и снизу.
+- Исходные характеристики, значения, экономика и gameplay behavior не изменены.
+- Frontend tests и production build проходят.
+- Responsive validation документирована.
 - Создан отдельный PR в `main`.
 - После завершения статус задачи установлен в `DONE`.
 
 ## Restrictions
-- Не подключать production к `task-*` branch.
-- Не деплоить PR branch как production workaround.
-- Не хранить Railway tokens/project IDs/secrets в GitHub.
-- Не заявлять об изменении Railway UI без фактического доступа и подтверждения.
-- Не менять frontend/backend runtime behavior без доказанной необходимости.
+- Не удалять важные элементы ради устранения overlap.
+- Не скрывать основные характеристики в popup/modal/menu.
+- Не уменьшать текст до нечитаемого размера.
+- Не менять игровые значения или backend contracts.
+- Не добавлять тяжёлые UI frameworks.
+- Не использовать отрицательные margin/absolute-position hacks без устойчивой responsive проверки.
+- Не коммитить generated artifacts.
 - Не выполнять merge и production deploy.
 - Не продолжать работу после установки статуса `DONE`.
