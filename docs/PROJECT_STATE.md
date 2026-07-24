@@ -10,7 +10,7 @@
 - Entry point: `frontend/src/main.tsx`; current app shell and gameplay UI live primarily in `frontend/src/App.tsx`.
 - The frontend initializes Telegram WebApp APIs, reads `initData`, authenticates through the backend, renders Marina visuals from `frontend/public/marina/` assets through a centralized emotion display mapping, and calls backend chat/action/day-advance endpoints.
 - API base URL is centralized in `frontend/src/apiConfig.ts`: `VITE_API_URL` is normalized when present, otherwise code falls back to `https://web-production-9b804.up.railway.app`; auth, chat, action and day-advance endpoints are built through the shared helper.
-- Chat/action/day-advance frontend requests include backend-compatible `idempotency_key` values generated per intentional user mutation; action failures are converted to safe user-facing messages with retry support and safe structured developer diagnostics; helper/API URL behavior is covered by Vitest unit tests and critical Telegram auth/chat/action/action-error-retry/day-advance/emotion React flows are covered by Vitest/jsdom integration tests with mocked Telegram WebApp and fetch.
+- Chat/action/day-advance frontend requests include backend-compatible `idempotency_key` values generated per intentional user mutation; action failures are converted to safe user-facing messages with retry support and safe structured developer diagnostics; helper/API URL behavior is covered by Vitest unit tests and critical Telegram auth/chat/action/action-error-retry/compact-HUD/day-advance/emotion React flows are covered by Vitest/jsdom integration tests with mocked Telegram WebApp and fetch.
 
 ## Backend
 - FastAPI + async SQLAlchemy + PostgreSQL.
@@ -70,3 +70,7 @@
 - TASK-017 found that a migration already existed in the baseline, but backend startup intentionally does not run Alembic automatically; a production database can therefore be stamped/apparently current while still missing `idempotency_records` if the explicit migration step was not run after the idempotency schema landed.
 - Current Alembic head is `20260723_0002`, a follow-up non-destructive revision that creates/repairs `idempotency_records` without manual SQL or runtime `create_all()`.
 - Operators still must run the Railway backend migration command against the real production PostgreSQL database before claiming production success.
+
+## TASK-018 Compact Status Bar
+- The top mobile HUD is now shorter: time/day/period share one compact line/card, the day-advance button uses shorter copy while keeping an accessible label, and Love/Mood/Hunger/Energy/Calm stats are compact cards with thinner progress meters in a horizontally scrollable mobile row.
+- Scene content starts after a smaller HUD gap/padding while desktop/tablet keeps a two-column HUD and the same scene/action/navigation structure.

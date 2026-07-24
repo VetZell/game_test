@@ -33,21 +33,21 @@ button:disabled { cursor: not-allowed; }
 .status-screen { min-height: 100vh; display: grid; place-items: center; padding: 24px; text-align: center; }
 .game-shell { min-height: 100vh; width: min(1180px, 100%); margin: 0 auto; padding: max(10px, env(safe-area-inset-top)) 10px calc(112px + env(safe-area-inset-bottom)); }
 
-.hud-panel { display: grid; grid-template-columns: minmax(220px, 280px) 1fr; gap: var(--space); padding: var(--space); border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--panel-strong); box-shadow: 0 18px 50px rgba(0, 0, 0, 0.38); backdrop-filter: blur(20px); }
-.time-card { display: grid; gap: 10px; padding: 14px; border-radius: var(--radius-md); background: linear-gradient(145deg, rgba(255, 112, 184, 0.13), rgba(155, 92, 255, 0.08)); border: 1px solid rgba(255, 255, 255, 0.1); }
-.time-main { display: flex; align-items: end; justify-content: space-between; gap: 10px; }
-.time-main strong { font-size: clamp(30px, 6vw, 42px); line-height: 0.95; }
+.hud-panel { display: grid; grid-template-columns: minmax(250px, 310px) 1fr; align-items: stretch; gap: 10px; padding: 10px; border: 1px solid var(--line); border-radius: 24px; background: var(--panel-strong); box-shadow: 0 14px 42px rgba(0, 0, 0, 0.34); backdrop-filter: blur(20px); }
+.time-card { display: grid; grid-template-columns: 1fr; gap: 8px; padding: 10px 12px; border-radius: 18px; background: linear-gradient(145deg, rgba(255, 112, 184, 0.13), rgba(155, 92, 255, 0.08)); border: 1px solid rgba(255, 255, 255, 0.1); }
+.time-main { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.time-main strong { font-size: clamp(22px, 3.5vw, 34px); line-height: 1; letter-spacing: -0.03em; }
 .time-main span, .time-card small { color: var(--muted); }
-.time-card small { display: flex; align-items: center; gap: 6px; }
-.advance-day-button { min-height: 44px; border: 0; border-radius: 999px; color: white; font-weight: 800; background: linear-gradient(90deg, #c73580, #8843d5); box-shadow: 0 12px 28px rgba(255, 78, 164, 0.2); transition: transform 0.18s ease, opacity 0.18s ease; }
+.time-card small { display: flex; align-items: center; gap: 5px; }
+.advance-day-button { min-height: 40px; border: 0; border-radius: 999px; color: white; font-weight: 800; background: linear-gradient(90deg, #c73580, #8843d5); box-shadow: 0 10px 22px rgba(255, 78, 164, 0.18); transition: transform 0.18s ease, opacity 0.18s ease; padding: 8px 12px; }
 .advance-day-button:not(:disabled):hover { transform: translateY(-1px); }
 .advance-day-button:disabled { opacity: 0.58; }
 
-.stats-row { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
-.mini-stat { min-width: 0; padding: 11px 12px; border-radius: 18px; background: rgba(255, 255, 255, 0.045); border: 1px solid rgba(255, 255, 255, 0.06); }
-.mini-stat > div:first-child { display: flex; align-items: center; gap: 7px; color: var(--muted); font-size: 12px; }
-.mini-stat strong { display: block; margin: 7px 0; font-size: 14px; }
-.meter { height: 7px; border-radius: 999px; background: rgba(255, 255, 255, 0.1); overflow: hidden; }
+.stats-row { display: grid; grid-template-columns: repeat(5, minmax(92px, 1fr)); gap: 8px; align-items: stretch; }
+.mini-stat { min-width: 0; padding: 8px 9px; border-radius: 15px; background: rgba(255, 255, 255, 0.045); border: 1px solid rgba(255, 255, 255, 0.06); }
+.mini-stat > div:first-child { display: flex; align-items: center; gap: 5px; color: var(--muted); font-size: 11px; white-space: nowrap; }
+.mini-stat strong { display: block; margin: 5px 0; font-size: 13px; }
+.meter { height: 5px; border-radius: 999px; background: rgba(255, 255, 255, 0.1); overflow: hidden; }
 .meter i { display: block; height: 100%; border-radius: inherit; transition: width 0.25s ease; }
 .pink .meter i { background: linear-gradient(90deg, #ff2e8b, #ff7abf); }
 .orange .meter i { background: linear-gradient(90deg, #ff9d24, #ff5f22); }
@@ -140,13 +140,15 @@ button:disabled { cursor: not-allowed; }
 .chat-form button:disabled { opacity: 0.55; }
 
 @media (max-width: 860px) {
-  .game-shell { padding: max(8px, env(safe-area-inset-top)) 8px calc(104px + env(safe-area-inset-bottom)); }
-  .hud-panel { grid-template-columns: 1fr; border-radius: 22px; }
-  .time-card { grid-template-columns: 1fr auto; align-items: center; }
-  .advance-day-button { grid-column: 1 / -1; }
-  .stats-row { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+  .game-shell { padding: max(6px, env(safe-area-inset-top)) 6px calc(104px + env(safe-area-inset-bottom)); }
+  .hud-panel { grid-template-columns: 1fr; gap: 7px; padding: 7px; border-radius: 20px; }
+  .time-card { grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 8px; }
+  .time-main { justify-content: flex-start; }
+  .time-main strong { font-size: 24px; }
+  .advance-day-button { min-height: 38px; padding: 7px 11px; font-size: 12px; white-space: nowrap; }
+  .stats-row { display: flex; gap: 6px; overflow-x: auto; overscroll-behavior-x: contain; padding-bottom: 1px; scrollbar-width: none; }
   .stats-row::-webkit-scrollbar, .action-grid::-webkit-scrollbar { display: none; }
-  .mini-stat { flex: 0 0 145px; }
+  .mini-stat { flex: 0 0 112px; padding: 7px 8px; }
   .scene-panel { min-height: 570px; border-radius: 24px; }
   .left-rail { left: 10px; top: 10px; width: 150px; }
   .speech-bubble { right: 10px; top: 14px; width: min(210px, 52vw); padding: 12px; font-size: 12px; }
@@ -161,8 +163,12 @@ button:disabled { cursor: not-allowed; }
 
 @media (max-width: 430px) {
   .game-shell { padding-left: 5px; padding-right: 5px; }
-  .time-main strong { font-size: 30px; }
-  .mini-stat { flex-basis: 136px; }
+  .time-card { grid-template-columns: minmax(0, 1fr) auto; gap: 6px; padding: 7px; }
+  .time-main { gap: 6px; }
+  .time-main strong { font-size: 21px; }
+  .time-card small { font-size: 11px; }
+  .advance-day-button { min-height: 38px; min-width: 58px; padding: 7px 9px; }
+  .mini-stat { flex-basis: 104px; }
   .scene-panel { min-height: 540px; }
   .left-rail { width: 132px; }
   .speech-bubble { width: 176px; }

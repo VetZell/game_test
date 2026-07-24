@@ -96,3 +96,8 @@
 - Added Alembic revision `20260723_0002` as the current head to safely ensure `idempotency_records` exists when a production-like database was already stamped at baseline but missed the idempotency table.
 - Added regression tests for clean upgrade, repeated upgrade, baseline-stamped missing-table repair, model/schema column parity, and action idempotency after an Alembic-created schema.
 - Documented the exact Railway migration commands and clarified that production success still requires an operator to run `alembic upgrade head` against the real PostgreSQL database.
+
+## TASK-018 — Compact top status bar
+- Reworked the frontend top HUD into a more compact mobile layout with day/time/period in one card, a shorter day-advance control and compact horizontally accessible stat cards.
+- Preserved all required status data and progress meters while reducing mobile vertical spacing and keeping page-level horizontal overflow disabled.
+- Added Vitest/jsdom coverage for compact HUD structure, all five key stats and day-advance accessibility behavior.

@@ -6,7 +6,7 @@
 ## Repository layout
 - `frontend/` — React + TypeScript + Vite Telegram Mini App frontend.
   - `frontend/src/main.tsx` mounts React and imports global styles.
-  - `frontend/src/App.tsx` contains the current single-page game shell, Telegram WebApp initialization, API calls, local UI state, centralized emotion display mapping, Marina visuals, action cards, day-advance control, and chat overlay.
+  - `frontend/src/App.tsx` contains the current single-page game shell, Telegram WebApp initialization, API calls, local UI state, centralized emotion display mapping, compact top HUD/status bar, Marina visuals, action cards, day-advance control, and chat overlay.
   - `frontend/src/mutationPayload.ts` builds chat/action/day-advance mutation payloads with per-request `idempotency_key` values.
   - `frontend/src/mutationPayload.test.ts` covers idempotency key generation and mutation payload behavior with Vitest in Node mode.
   - `frontend/src/App.integration.test.tsx` covers Telegram-auth, chat, action, action error mapping/retry, day-advance, emotion fallback/synchronization, pending/disabled controls, inactive navigation and error-recovery flows with mocked Telegram WebApp and fetch in Vitest/jsdom.
@@ -103,7 +103,7 @@
 ## Current boundaries and known limitations
 - Documentation changes in TASK-004 do not change runtime behavior, API contracts, UI, game balance, or database schema.
 - Backend chat orchestration remains in `backend/app/game_services.py`, while deterministic Marina personality and safe memory-selection policy is isolated in `backend/app/personality.py`; action economy remains in `game_services.py`.
-- Frontend sends idempotency keys with chat/action/day-advance mutation payloads, uses a centralized emotion key → label → visual/tone mapping with repository asset fallbacks, and React-level Vitest/jsdom integration tests cover critical mocked auth, chat, action, day-advance, emotion and accessibility flows.
+- Frontend sends idempotency keys with chat/action/day-advance mutation payloads, uses a centralized emotion key → label → visual/tone mapping with repository asset fallbacks, and React-level Vitest/jsdom integration tests cover critical mocked auth, chat, action, compact HUD/status stats, day-advance, emotion and accessibility flows.
 - The former unauthenticated player helper endpoints `POST /api/v1/players` and `GET /api/v1/players/{telegram_id}` are removed; player creation/loading happens through Telegram-authenticated flows only.
 - Deployment does not automatically run Alembic migrations; operators must run/verify `./scripts/migrate.sh` separately before API rollout and `/health` verification.
 - PostgreSQL migration rollout needs staging/production-like validation.
@@ -117,3 +117,7 @@
 - Action request failures are centrally mapped in `frontend/src/App.tsx`: network/`Load failed`, auth, conflict, validation/unavailable and server errors no longer display raw technical text to users.
 - The action error panel offers `Повторить` for the last failed action; retry rebuilds the mutation payload with a fresh idempotency key and does not mutate local state until the backend returns success.
 - Developer diagnostics use structured `console.error` with endpoint/status/safe detail and do not include Telegram `init_data` or secrets.
+
+## TASK-018 compact top HUD
+- The top HUD uses `compact-hud`, `compact-time-card`, `compact-advance-button`, `compact-stats-row`, `compact-mini-stat` and `compact-meter` structure so mobile CSS can keep day/time/period, next-period action and five key stats visible without tall stacked cards.
+- At mobile widths the stats row scrolls horizontally inside the HUD while page-level `overflow-x` remains hidden, preserving access to all stats without creating whole-page horizontal overflow.

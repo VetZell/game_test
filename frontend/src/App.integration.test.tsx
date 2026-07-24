@@ -141,6 +141,30 @@ describe('App Telegram integration flows', () => {
     expect(screen.getByRole('heading', { name: 'День Марины' })).toBeInTheDocument()
   })
 
+
+  it('renders a compact top HUD with day, period, advance control and all key stats', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(jsonResponse(player()))
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<App />)
+    await screen.findByText('День 4')
+
+    const hud = screen.getByLabelText('Статус дня и характеристики')
+    expect(hud).toHaveClass('compact-hud')
+    expect(hud).toContainElement(screen.getByText('08:00'))
+    expect(hud).toContainElement(screen.getByText('День 4'))
+    expect(hud).toContainElement(screen.getByText('Доброе утро'))
+    expect(screen.getByRole('button', { name: /Продолжить день/i })).toHaveClass('compact-advance-button')
+
+    const stats = within(screen.getByLabelText('Характеристики Марины'))
+    for (const label of ['Любовь', 'Настроение', 'Сытость', 'Энергия', 'Спокойствие']) {
+      expect(stats.getByText(label)).toBeInTheDocument()
+    }
+    expect(screen.getAllByRole('article')).toHaveLength(5)
+    expect(document.querySelectorAll('.compact-mini-stat')).toHaveLength(5)
+    expect(document.querySelectorAll('.compact-meter')).toHaveLength(5)
+  })
+
   it('sends chat messages with initData and an idempotency key, then renders Marina reply', async () => {
     const loadedPlayer = player()
     const repliedPlayer = player({ experience: 125 })

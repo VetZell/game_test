@@ -338,8 +338,8 @@ export default function App() {
     return [
       { label: 'Любовь', value: m?.love ?? 50, icon: Heart, className: 'pink' },
       { label: 'Настроение', value: m?.mood ?? 80, icon: Smile, className: 'orange' },
-      { label: 'Энергия', value: m?.energy ?? 100, icon: Zap, className: 'blue' },
       { label: 'Сытость', value: m?.hunger ?? 80, icon: Utensils, className: 'green' },
+      { label: 'Энергия', value: m?.energy ?? 100, icon: Zap, className: 'blue' },
       { label: 'Спокойствие', value: m?.calm ?? 75, icon: ShieldCheck, className: 'purple' },
     ]
   }, [player])
@@ -357,11 +357,33 @@ export default function App() {
 
   return (
     <main className="game-shell">
-      <section className="hud-panel">
-        <div className="time-card"><div className="time-main"><strong>{timeLabel}</strong><span>День {marina.day}</span></div><small><Sun size={15} aria-hidden="true"/> {periodLabel}</small><button type="button" className="advance-day-button" onClick={() => void advanceDay()} disabled={dayBusy || busyAction !== null || chatBusy} aria-busy={dayBusy}>{dayBusy ? 'Переходим…' : `Продолжить день → ${currentPeriod.nextLabel}`}</button></div>
-        <div className="stats-row">{stats.map(({ label, value, icon: Icon, className }) => (
-          <article className={`mini-stat ${className}`} key={label}><div><Icon size={17}/><span>{label}</span></div><strong>{value}/100</strong><div className="meter"><i style={{ width: `${Math.min(100, value)}%` }}/></div></article>
-        ))}</div>
+      <section className="hud-panel compact-hud" aria-label="Статус дня и характеристики">
+        <div className="time-card compact-time-card">
+          <div className="time-main compact-time-main">
+            <strong>{timeLabel}</strong>
+            <span>День {marina.day}</span>
+            <small><Sun size={14} aria-hidden="true"/> {periodLabel}</small>
+          </div>
+          <button
+            type="button"
+            className="advance-day-button compact-advance-button"
+            onClick={() => void advanceDay()}
+            disabled={dayBusy || busyAction !== null || chatBusy}
+            aria-busy={dayBusy}
+            aria-label={dayBusy ? 'Переходим к следующему периоду дня' : `Продолжить день → ${currentPeriod.nextLabel}`}
+          >
+            {dayBusy ? 'Переход…' : `→ ${currentPeriod.nextLabel}`}
+          </button>
+        </div>
+        <div className="stats-row compact-stats-row" aria-label="Характеристики Марины">
+          {stats.map(({ label, value, icon: Icon, className }) => (
+            <article className={`mini-stat compact-mini-stat ${className}`} key={label} aria-label={`${label}: ${value} из 100`}>
+              <div><Icon size={15} aria-hidden="true"/><span>{label}</span></div>
+              <strong>{value}/100</strong>
+              <div className="meter compact-meter" aria-hidden="true"><i style={{ width: `${Math.min(100, value)}%` }}/></div>
+            </article>
+          ))}
+        </div>
       </section>
 
       <section className={`scene-panel period-${marina.period} emotion-${emotion} scene-visual-${activeVisual}`}>

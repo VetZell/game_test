@@ -19,6 +19,7 @@
 - TASK-015 reproducible Railway frontend build fix for Rollup Linux x64 musl optional package resolution.
 - TASK-016 production Frontend → Backend connectivity diagnosis: centralized API URL handling, safe action diagnostics and documented/covered CORS preflight requirements.
 - TASK-017 production idempotency migration repair: Alembic head now includes a follow-up revision that creates/repairs `idempotency_records` for baseline-stamped production-like databases and documents the required Railway operator migration command.
+- TASK-018 compact top status bar: reduced mobile HUD height while preserving day/time/period, day advance, five visible stats, safe-area behavior and frontend coverage.
 
 ## Next
 1. Run and verify `alembic upgrade head` against the real Railway production PostgreSQL database, confirming `idempotency_records` exists and idempotent action/day mutations succeed.
