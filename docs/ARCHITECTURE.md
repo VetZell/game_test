@@ -133,3 +133,7 @@
 - `frontend/src/App.tsx` groups top scene overlays in `.scene-top-overlays` and bottom scene CTA/focus content in `.scene-bottom-controls` so CSS can control stacking and avoid collisions with fixed navigation.
 - `frontend/src/index.css` keeps `.hud-panel` as a one-row flex container at mobile sizes; `.time-card` stays on the left and `.stats-row` is the only horizontally scrollable region for all five stat cards.
 - Requested viewport checks were run with a local production build plus Playwright/Chromium at 320×568, 375×667, 390×844 and 430×932, validating no page-level horizontal overflow and no bottom-nav/scene-control bounding-box overlap.
+
+## TASK-021 no-scroll top HUD
+- After TASK-021, imported runtime CSS in `frontend/src/styles.css` and `frontend/src/room-fixes.css` overrides the previous mobile stat-strip scroll: `.compact-hud` is a nowrap flex row, `.compact-time-card` is a fixed compact left block, and `.compact-stats-row` is a five-column grid with visible overflow rather than `overflow-x: auto`.
+- `frontend/src/App.tsx` keeps full stat names in article `aria-label`s and uses shorter visual labels only to fit the one-row 320–430 px HUD without hiding values or progress indicators.

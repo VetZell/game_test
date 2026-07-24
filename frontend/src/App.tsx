@@ -336,11 +336,11 @@ export default function App() {
   const stats = useMemo(() => {
     const m = player?.marina
     return [
-      { label: 'Любовь', value: m?.love ?? 50, icon: Heart, className: 'pink' },
-      { label: 'Настроение', value: m?.mood ?? 80, icon: Smile, className: 'orange' },
-      { label: 'Энергия', value: m?.energy ?? 100, icon: Zap, className: 'blue' },
-      { label: 'Сытость', value: m?.hunger ?? 80, icon: Utensils, className: 'green' },
-      { label: 'Спокойствие', value: m?.calm ?? 75, icon: ShieldCheck, className: 'purple' },
+      { label: 'Любовь', shortLabel: 'Люб', value: m?.love ?? 50, icon: Heart, className: 'pink' },
+      { label: 'Настроение', shortLabel: 'Настр', value: m?.mood ?? 80, icon: Smile, className: 'orange' },
+      { label: 'Энергия', shortLabel: 'Эн', value: m?.energy ?? 100, icon: Zap, className: 'blue' },
+      { label: 'Сытость', shortLabel: 'Сыт', value: m?.hunger ?? 80, icon: Utensils, className: 'green' },
+      { label: 'Спокойствие', shortLabel: 'Спок', value: m?.calm ?? 75, icon: ShieldCheck, className: 'purple' },
     ]
   }, [player])
 
@@ -372,13 +372,13 @@ export default function App() {
             aria-busy={dayBusy}
             aria-label={dayBusy ? 'Переходим к следующему периоду дня' : `Продолжить день → ${currentPeriod.nextLabel}`}
           >
-            {dayBusy ? 'Переход…' : `→ ${currentPeriod.nextLabel}`}
+            {dayBusy ? '…' : '→'}
           </button>
         </div>
         <div className="stats-row compact-stats-row" aria-label="Характеристики Марины">
-          {stats.map(({ label, value, icon: Icon, className }) => (
+          {stats.map(({ label, shortLabel, value, icon: Icon, className }) => (
             <article className={`mini-stat compact-mini-stat ${className}`} key={label} aria-label={`${label}: ${value} из 100`}>
-              <div><Icon size={15} aria-hidden="true"/><span>{label}</span></div>
+              <div><Icon size={13} aria-hidden="true"/><span title={label}>{shortLabel}</span></div>
               <strong>{value}/100</strong>
               <div className="meter compact-meter" aria-hidden="true"><i style={{ width: `${Math.min(100, value)}%` }}/></div>
             </article>

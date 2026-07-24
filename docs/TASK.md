@@ -4,7 +4,7 @@
 TASK-021
 
 ## Status
-READY
+DONE
 
 ## Priority
 High

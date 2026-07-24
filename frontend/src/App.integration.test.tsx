@@ -156,13 +156,15 @@ describe('App Telegram integration flows', () => {
     expect(hud).toContainElement(screen.getByText('Доброе утро'))
     expect(screen.getByRole('button', { name: /Продолжить день/i })).toHaveClass('compact-advance-button')
 
-    const stats = within(screen.getByLabelText('Характеристики Марины'))
+    const statsRegion = screen.getByLabelText('Характеристики Марины')
+    const stats = within(statsRegion)
     for (const label of ['Любовь', 'Настроение', 'Энергия', 'Сытость', 'Спокойствие']) {
-      expect(stats.getByText(label)).toBeInTheDocument()
+      expect(stats.getByRole('article', { name: new RegExp(`${label}: \\d+ из 100`) })).toBeInTheDocument()
     }
 
-    const statLabels = Array.from(hud.querySelectorAll('.compact-mini-stat span')).map((node) => node.textContent)
+    const statLabels = Array.from(hud.querySelectorAll('.compact-mini-stat')).map((node) => node.getAttribute('aria-label')?.split(':')[0])
     expect(statLabels).toEqual(['Любовь', 'Настроение', 'Энергия', 'Сытость', 'Спокойствие'])
+    expect(Array.from(statsRegion.querySelectorAll('.compact-mini-stat span')).map((node) => node.textContent)).toEqual(['Люб', 'Настр', 'Эн', 'Сыт', 'Спок'])
     expect(hud.querySelector('.compact-time-card')).toBeInTheDocument()
     expect(hud.querySelector('.compact-stats-row')).toBeInTheDocument()
     expect(screen.getAllByRole('article')).toHaveLength(5)

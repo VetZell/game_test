@@ -1,5 +1,10 @@
 # Changelog
 
+## TASK-021 — Compact no-scroll mobile HUD
+- Reduced the mobile top HUD height after TASK-020 and removed the horizontal stat-strip scroll requirement.
+- Kept time/day/period/day-advance and all five stats in one visible row on 320–430 px using compact visual stat labels with full accessible labels, preserved `/100` values and progress meters.
+- Added frontend DOM/CSS tests and Playwright viewport validation for no HUD/page overflow and all stat cards visible at 320×568, 375×667, 390×844 and 430×932.
+
 ## TASK-020 — Mobile layout overlap and clipping fix
 - Reworked the top HUD into a single horizontal panel with the time/day/period/day-advance block fixed on the left and Love/Mood/Energy/Hunger/Calm stats scrollable on the right at 320–430 px.
 - Grouped scene top overlays and scene-bottom focus/chat controls to avoid wallet/speech intersections and bottom navigation overlap.

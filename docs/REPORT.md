@@ -1,51 +1,54 @@
 # Task
-TASK-020 — Исправить mobile layout: убрать наложения, обрезание карточек и конфликт нижней навигации со сценой
+TASK-021 — Уменьшить верхнюю панель состояния и полностью убрать горизонтальный scroll характеристик
 
 ## Status
 SUCCESS
 
 ## Summary
-- Audited the mobile HUD, scene overlays, scene-bottom controls, chat CTA, action section and bottom navigation in `frontend/src/App.tsx`, `frontend/src/index.css`, and the existing frontend integration coverage.
-- Fixed the root HUD conflict: TASK-018 mobile CSS changed `.hud-panel` to a one-column grid at `max-width: 860px`, so the time/day card and characteristics became two stacked sections; the stats row then scrolled inside that second row and could look clipped on iPhone widths.
-- Reworked the HUD as one horizontal flex panel: compact time/day/period/day-advance card remains fixed on the left, and all five stats live in the right-side `.compact-stats-row` in the same row.
-- Preserved the required stat set and values, with visible order `Любовь`, `Настроение`, `Энергия`, `Сытость`, `Спокойствие`, and progress indicators for all five cards.
-- Made the stats area internally horizontally scrollable on 320–430 px with touch-friendly momentum scrolling, scroll snap, and a subtle edge fade, while preventing page-level horizontal overflow.
-- Fixed scene floating-card overlap by grouping wallet/resources and Marina speech into `.scene-top-overlays` with constrained widths on narrow screens.
-- Fixed the scene-bottom conflict by wrapping `Фокус сейчас` and the `Поговорить` CTA in `.scene-bottom-controls`; on narrow screens the controls stack inside the scene panel instead of colliding with fixed bottom navigation.
-- Increased bottom safe-area padding and kept the fixed navigation in a stable single-row grid so it does not cover scene-bottom controls or squeeze labels into overlapping text.
-- Kept backend API, gameplay economy, Telegram auth, CORS, database/Alembic, personality/memory logic, action content and day progression unchanged.
+- Audited the current HUD implementation after TASK-020 in `frontend/src/App.tsx`, `frontend/src/index.css`, `frontend/src/styles.css`, `frontend/src/room-fixes.css`, and frontend integration coverage.
+- Found that the actual production bundle imports `styles.css` and `room-fixes.css`; those files still overrode the TASK-020 `index.css` rules with a tall `min-height: 120px` HUD and `overflow-x: auto` stat strip.
+- Kept the HUD as one horizontal row and removed the horizontal stat scroll from the imported runtime CSS: `.compact-hud` is now a nowrap flex row, `.compact-time-card` stays fixed on the left, and `.compact-stats-row` is a five-column grid with all stat cards visible at once.
+- Reduced HUD height by shrinking time-card width/padding, compacting day/period text, changing the visible day-advance control to an arrow while preserving the full `aria-label`, reducing stat card padding/gaps, and shortening only the visible stat labels.
+- Addressed review feedback after PR #20: raised narrow mobile stat label/value typography to readable computed sizes and increased the day-advance interactive bounding box to `40×40px` without reintroducing HUD scroll or page overflow.
+- Preserved full stat identity and order through article `aria-label`s: `Любовь`, `Настроение`, `Энергия`, `Сытость`, `Спокойствие`.
+- Preserved `/100` values and progress indicators for all five stats.
+- Added a CSS regression test for the no-scroll mobile HUD override and updated the integration test for full accessible stat names plus compact visual labels.
+- Ran Playwright/Chromium responsive validation on 320×568, 375×667, 390×844 and 430×932 with mocked Telegram WebApp/fetch.
+- Backend API, economy, day progression, Telegram auth, CORS, database/Alembic and personality/memory logic were not changed.
 
 ## Files Changed
-- `frontend/src/App.tsx` — reordered stats to the required HUD order, added `scene-top-overlays`, and added the explicit `scene-bottom-controls` wrapper around focus/chat controls.
-- `frontend/src/index.css` — converted mobile HUD to one horizontal flex row, added constrained internal stat scrolling, adjusted scene overlay/control layout, safe-area bottom padding, bottom navigation sizing and narrow viewport fallbacks.
-- `frontend/src/App.integration.test.tsx` — expanded frontend integration coverage for the one-row HUD structure, stat order/presence, scene-bottom controls, talk CTA and bottom navigation.
-- `docs/ARCHITECTURE.md` — updated frontend/current-boundary notes for TASK-020 layout behavior and responsive validation.
-- `docs/PROJECT_STATE.md` — recorded the corrected mobile HUD/scene/navigation state.
-- `docs/ROADMAP.md` — marked TASK-020 completed.
-- `docs/CHANGELOG.md` — added TASK-020 changelog entry.
+- `frontend/src/App.tsx` — added compact visual stat labels while preserving full accessible stat names/order, and shortened the visible day-advance button text to an arrow.
+- `frontend/src/index.css` — updated the audited HUD CSS to remove mobile stat scrolling and use compact no-scroll sizing.
+- `frontend/src/styles.css` — added imported runtime TASK-021 compact HUD overrides for the production bundle.
+- `frontend/src/room-fixes.css` — added final imported runtime HUD overrides after room-scene CSS so the production bundle cannot reintroduce the old tall scrollable HUD.
+- `frontend/src/App.integration.test.tsx` — updated HUD assertions for full accessible stat labels and compact visual labels.
+- `frontend/src/hudCss.test.ts` — added static CSS regression coverage that rejects HUD `overflow-x: auto`, mask fade and scroll snap in the final mobile override.
+- `frontend/package.json` and `frontend/package-lock.json` — added `@types/node` as a dev dependency for the CSS file-reading Vitest test only.
+- `docs/ARCHITECTURE.md` — documented the imported CSS boundary and no-scroll HUD structure.
+- `docs/PROJECT_STATE.md` — recorded the TASK-021 no-scroll mobile HUD state.
+- `docs/ROADMAP.md` — marked TASK-021 completed.
+- `docs/CHANGELOG.md` — added TASK-021 changelog entry.
 - `docs/TASK.md` — changed status from `READY` to `DONE`.
 - `docs/REPORT.md` — replaced with this report.
 
 ## Problems Found
-- Mobile HUD was explicitly switched to one-column layout at `max-width: 860px`, which violated the desired single horizontal panel and made stats feel like a separate clipped row.
-- The stats row used an internal horizontal scroll, but the surrounding HUD/card layout did not reserve a fixed left time block plus a flexible right scroll region in one row.
-- At small widths the top scene wallet card and Marina speech bubble could consume more horizontal space than the panel provided.
-- `Фокус сейчас` and `Поговорить` were separate absolute-positioned controls near the bottom of the scene; together with the fixed bottom nav this created a visual stacking/overlap risk.
-- The bottom nav switched to a 2×2 grid at `max-width: 430px`, increasing its height and worsening the chance of conflict with the scene bottom.
+- `frontend/src/main.tsx` imports `styles.css` and `room-fixes.css`, not `index.css`, so production CSS still included the tall room-fix HUD rules.
+- `room-fixes.css` overrode HUD layout with `min-height: 120px`, large time/stat padding and `.stats-row { overflow-x: auto }`.
+- The stat row used fixed grid-auto columns, so all five stat cards could not appear at 320–430 px without horizontal scrolling.
+- The visible day-advance text consumed horizontal space that was needed for no-scroll stat visibility.
 
 ## Problems Fixed
-- `.hud-panel` is now a nowrap flex row on mobile and desktop; `.time-card` stays fixed on the left and `.stats-row` flexes to the right with `min-width: 0`.
-- `.stats-row` uses internal `overflow-x: auto`, `overscroll-behavior-x: contain`, `-webkit-overflow-scrolling: touch`, scroll snap and padding so the first and last stat cards can be fully reached without page overflow.
-- Scene top overlays are now one flex container with constrained wallet/speech widths for 320–430 px, avoiding card intersections and text escape.
-- Scene bottom controls are now one controlled stacking context inside `.scene-panel`; on narrow screens they become a compact vertical stack while preserving the talk button touch target.
-- Bottom navigation remains a stable single row on 320–430 px, uses safe-area bottom positioning, smaller gaps/padding and readable labels instead of creating a taller 2-row nav.
-- `game-shell` bottom padding now reserves additional space for the fixed nav and `env(safe-area-inset-bottom)`.
+- Added final `.compact-*` overrides after room-scene CSS so the actual imported cascade uses the compact no-scroll HUD.
+- Changed the stat area to `grid-template-columns: repeat(5, minmax(0, 1fr))`, disabled grid-auto column scrolling, and set the final compact stat row to visible overflow without scrollbars, mask fade or scroll snap.
+- Reduced the compact time block to 88px at `max-width: 430px` and 104px above that, with a small arrow-only visible day-advance button, full accessible label, and `40×40px` minimum interactive box.
+- Raised `max-width: 430px` stat label/value typography from the review-rejected `7.5px`/`9px` to computed `9px`/`10.5px` while keeping all cards visible simultaneously.
+- Replaced long visible stat labels with compact labels (`Люб`, `Настр`, `Эн`, `Сыт`, `Спок`) while retaining full stat names in `aria-label`s and preserving values/progress meters.
 
 ## Responsive Validation
-- 320 × 568: PASS — no page-level horizontal overflow; HUD is one row; time block visible on the left; all five stat cards are reachable through stats scroll; bottom nav and scene-bottom controls do not overlap.
-- 375 × 667: PASS — no page-level horizontal overflow; HUD remains one row; stats scroll internally; bottom controls/nav bounding boxes do not intersect.
-- 390 × 844: PASS — no page-level horizontal overflow; HUD remains one row; last stat card scrolls fully into view; time block remains visible.
-- 430 × 932: PASS — no page-level horizontal overflow; HUD remains one row; all five stat cards are available; scene-bottom controls and nav remain separated.
+- 320 × 568: PASS — page `scrollWidth=320`, `clientWidth=320`; HUD `scrollWidth=308`, `clientWidth=308`; HUD height `74px`; stat label/value fonts `9px`/`10.5px`; day-advance bounding box `40×40px`; all five stat cards are inside the HUD; stat row `overflow-x=visible`.
+- 375 × 667: PASS — page `scrollWidth=375`, `clientWidth=375`; HUD `scrollWidth=363`, `clientWidth=363`; HUD height `74px`; stat label/value fonts `9px`/`10.5px`; day-advance bounding box `40×40px`; all five stat cards are inside the HUD; stat row `overflow-x=visible`.
+- 390 × 844: PASS — page `scrollWidth=390`, `clientWidth=390`; HUD `scrollWidth=378`, `clientWidth=378`; HUD height `74px`; stat label/value fonts `9px`/`10.5px`; day-advance bounding box `40×40px`; all five stat cards are inside the HUD; stat row `overflow-x=visible`.
+- 430 × 932: PASS — page `scrollWidth=430`, `clientWidth=430`; HUD `scrollWidth=412`, `clientWidth=412`; HUD height `74px`; stat label/value fonts `9px`/`10.5px`; day-advance bounding box `40×40px`; all five stat cards are inside the HUD; stat row `overflow-x=visible`.
 
 ## Tests
 - PASS — `git status --short --branch`
@@ -53,23 +56,21 @@ SUCCESS
 - PASS — `cd frontend && npm ci`
 - PASS — `cd frontend && npm test -- --run`
 - PASS — `cd frontend && npm run build`
+- PASS — `cd frontend && npm install --no-save playwright@1.57.0`
 - PASS — `cd frontend && npx playwright install chromium`
-- PASS — `cd frontend && npx playwright install-deps chromium`
-- PASS — `cd frontend && npx serve -s dist -l 4173` plus Playwright/Chromium responsive DOM and bounding-box assertions for 320×568, 375×667, 390×844 and 430×932.
-- PASS — confirmed via Playwright: HUD is one horizontal panel, time block is left of the stats area, no page-level horizontal overflow, all five stat cards are reachable, bottom nav and scene-bottom controls do not overlap, and the last HUD card scrolls fully into view.
-- PASS — `cd backend && pytest -q`
+- PASS — `cd frontend && npx serve -s dist -l 4173` plus Playwright/Chromium responsive assertions for 320×568, 375×667, 390×844 and 430×932.
 
 ## Risks
-- Playwright checks run against the local production build with mocked Telegram WebApp/fetch, not inside the real Telegram iOS WebView or live Railway frontend. The repository layout behavior is validated at the requested viewport sizes, but final production confirmation still requires deployment and device/WebView viewing.
-- Internal horizontal stat scrolling is intentional on narrow screens; users must swipe the stat strip to see all cards at 320–430 px.
+- Playwright checks run against the local production build with mocked Telegram WebApp/fetch, not inside the real Telegram iOS WebView or live Railway frontend.
+- The 320 px HUD uses short visible stat labels to avoid scrolling; full stat names remain available through accessible labels, and Playwright confirms computed `9px` labels plus `10.5px` values after the review fix.
 
 ## Technical Debt
-- Existing operational debt remains: Railway production service source branch/automatic deploy settings and live Railway PostgreSQL `alembic upgrade head` still require operator verification outside Codex.
-- No new repository technical debt was added by TASK-020.
+- Existing operational debt remains: Railway production source-branch/automatic deploy settings and live Railway PostgreSQL `alembic upgrade head` still require operator verification outside Codex.
+- No new repository technical debt was added by TASK-021.
 
 ## Safe To Merge
 YES
 
 ## Commit / PR
-- Implementation commit: 9b9db976bc883f1aabf2a0b6ac48446fdfaa1fde
-- Pull Request: PR #19
+- Implementation commit: 01a2ef4a4eb4384cb486964f9a90a0eed97e8980
+- Pull Request: PR #20
