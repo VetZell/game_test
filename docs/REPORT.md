@@ -9,6 +9,7 @@ SUCCESS
 - Found that the actual production bundle imports `styles.css` and `room-fixes.css`; those files still overrode the TASK-020 `index.css` rules with a tall `min-height: 120px` HUD and `overflow-x: auto` stat strip.
 - Kept the HUD as one horizontal row and removed the horizontal stat scroll from the imported runtime CSS: `.compact-hud` is now a nowrap flex row, `.compact-time-card` stays fixed on the left, and `.compact-stats-row` is a five-column grid with all stat cards visible at once.
 - Reduced HUD height by shrinking time-card width/padding, compacting day/period text, changing the visible day-advance control to an arrow while preserving the full `aria-label`, reducing stat card padding/gaps, and shortening only the visible stat labels.
+- Addressed review feedback after PR #20: raised narrow mobile stat label/value typography to readable computed sizes and increased the day-advance interactive bounding box to `40×40px` without reintroducing HUD scroll or page overflow.
 - Preserved full stat identity and order through article `aria-label`s: `Любовь`, `Настроение`, `Энергия`, `Сытость`, `Спокойствие`.
 - Preserved `/100` values and progress indicators for all five stats.
 - Added a CSS regression test for the no-scroll mobile HUD override and updated the integration test for full accessible stat names plus compact visual labels.
@@ -39,14 +40,15 @@ SUCCESS
 ## Problems Fixed
 - Added final `.compact-*` overrides after room-scene CSS so the actual imported cascade uses the compact no-scroll HUD.
 - Changed the stat area to `grid-template-columns: repeat(5, minmax(0, 1fr))`, disabled grid-auto column scrolling, and set the final compact stat row to visible overflow without scrollbars, mask fade or scroll snap.
-- Reduced the compact time block to 78px at `max-width: 430px` and 96px above that, with a small arrow-only visible day-advance button and full accessible label.
+- Reduced the compact time block to 88px at `max-width: 430px` and 104px above that, with a small arrow-only visible day-advance button, full accessible label, and `40×40px` minimum interactive box.
+- Raised `max-width: 430px` stat label/value typography from the review-rejected `7.5px`/`9px` to computed `9px`/`10.5px` while keeping all cards visible simultaneously.
 - Replaced long visible stat labels with compact labels (`Люб`, `Настр`, `Эн`, `Сыт`, `Спок`) while retaining full stat names in `aria-label`s and preserving values/progress meters.
 
 ## Responsive Validation
-- 320 × 568: PASS — page `scrollWidth=320`, `clientWidth=320`; HUD `scrollWidth=308`, `clientWidth=308`; HUD height `74px`; all five stat cards are inside the HUD; stat row `overflow-x=visible`.
-- 375 × 667: PASS — page `scrollWidth=375`, `clientWidth=375`; HUD `scrollWidth=363`, `clientWidth=363`; HUD height `74px`; all five stat cards are inside the HUD; stat row `overflow-x=visible`.
-- 390 × 844: PASS — page `scrollWidth=390`, `clientWidth=390`; HUD `scrollWidth=378`, `clientWidth=378`; HUD height `74px`; all five stat cards are inside the HUD; stat row `overflow-x=visible`.
-- 430 × 932: PASS — page `scrollWidth=430`, `clientWidth=430`; HUD `scrollWidth=412`, `clientWidth=412`; HUD height `74px`; all five stat cards are inside the HUD; stat row `overflow-x=visible`.
+- 320 × 568: PASS — page `scrollWidth=320`, `clientWidth=320`; HUD `scrollWidth=308`, `clientWidth=308`; HUD height `74px`; stat label/value fonts `9px`/`10.5px`; day-advance bounding box `40×40px`; all five stat cards are inside the HUD; stat row `overflow-x=visible`.
+- 375 × 667: PASS — page `scrollWidth=375`, `clientWidth=375`; HUD `scrollWidth=363`, `clientWidth=363`; HUD height `74px`; stat label/value fonts `9px`/`10.5px`; day-advance bounding box `40×40px`; all five stat cards are inside the HUD; stat row `overflow-x=visible`.
+- 390 × 844: PASS — page `scrollWidth=390`, `clientWidth=390`; HUD `scrollWidth=378`, `clientWidth=378`; HUD height `74px`; stat label/value fonts `9px`/`10.5px`; day-advance bounding box `40×40px`; all five stat cards are inside the HUD; stat row `overflow-x=visible`.
+- 430 × 932: PASS — page `scrollWidth=430`, `clientWidth=430`; HUD `scrollWidth=412`, `clientWidth=412`; HUD height `74px`; stat label/value fonts `9px`/`10.5px`; day-advance bounding box `40×40px`; all five stat cards are inside the HUD; stat row `overflow-x=visible`.
 
 ## Tests
 - PASS — `git status --short --branch`
@@ -60,7 +62,7 @@ SUCCESS
 
 ## Risks
 - Playwright checks run against the local production build with mocked Telegram WebApp/fetch, not inside the real Telegram iOS WebView or live Railway frontend.
-- The 320 px HUD necessarily uses short visible stat labels to avoid scrolling; full stat names remain available through accessible labels.
+- The 320 px HUD uses short visible stat labels to avoid scrolling; full stat names remain available through accessible labels, and Playwright confirms computed `9px` labels plus `10.5px` values after the review fix.
 
 ## Technical Debt
 - Existing operational debt remains: Railway production source-branch/automatic deploy settings and live Railway PostgreSQL `alembic upgrade head` still require operator verification outside Codex.

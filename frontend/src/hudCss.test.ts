@@ -24,7 +24,10 @@ describe('mobile HUD CSS', () => {
     const mobileStatsRule = mobileCss.match(/\.compact-stats-row\{[^}]+\}/)?.[0] || ''
     expect(mobileStatsRule).not.toContain('overflow-x: auto')
     expect(mobileStatsRule).not.toContain('mask-image: linear-gradient')
-    expect(narrowCss).toContain('.compact-time-card{flex-basis:78px')
-    expect(narrowCss).toContain('.compact-stats-row{gap:3px}')
+    expect(narrowCss).toContain('.compact-time-card{flex-basis:88px')
+    expect(narrowCss).toContain('.compact-stats-row{gap:2px}')
+    expect(narrowCss).toContain('min-width:40px;min-height:40px')
+    expect(narrowCss).toContain('.compact-mini-stat>div:first-child{font-size:9px')
+    expect(narrowCss).toContain('.compact-mini-stat strong{font-size:10.5px')
   })
 })
