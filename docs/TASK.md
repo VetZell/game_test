@@ -1,129 +1,126 @@
 # Current Task
 
 ## Task ID
-TASK-018
+TASK-019
 
 ## Status
-DONE
+READY
 
 ## Priority
-Medium
+High
 
 ## Title
-Сделать верхний status bar компактнее и освободить больше места для сцены
+Исправить Railway production deploy: привязать frontend и backend к `main` и включить автоматический деплой после merge
 
 ## Goal
-Уменьшить слишком крупный верхний блок интерфейса Telegram Mini App, чтобы статус дня, времени и характеристик занимал меньше вертикального пространства на мобильном экране, при этом все важные показатели оставались читаемыми и доступными.
+Устранить ситуацию, при которой production-сервисы Railway остаются подключены к временной task-ветке и после слияния PR в `main` не получают новое обновление автоматически. Production frontend и backend должны отслеживать только `main`, а успешный merge в `main` должен автоматически запускать соответствующий deployment без ручного выбора очередной task-ветки.
 
 ## Context
-- Production Mini App работает после TASK-017.
-- На текущем мобильном интерфейсе верхний HUD/status bar визуально слишком высокий и отнимает значительную часть экрана до основной сцены с Мариной.
-- Сейчас верхняя область содержит время, номер дня, период, кнопку перехода дня и пять характеристик.
-- Пользователю нужен более компактный и аккуратный верхний статусный блок без потери функциональности.
-- Основной ориентир — iPhone/Telegram WebView и узкие мобильные экраны.
+- TASK-018/PR #17 готовится к merge.
+- На скриншоте Railway production frontend подключён к ветке `task-017-production-idempotency-migration`, а в списке вручную выбираются следующие task-ветки.
+- Из-за такой настройки merge PR в `main` не приводит к автоматическому production deployment.
+- Временные ветки `task-*` предназначены только для разработки и PR, а не как постоянный production source branch.
+- Репозиторий может содержать Railway config и deployment documentation, но фактическая branch connection/automatic deployment setting может находиться только в Railway UI и потребовать отдельного действия оператора.
 
 ## Instructions
 1. Выполнить обязательную startup-синхронизацию и чтение файлов согласно `AGENTS.md` и `docs/CODEX_PROTOCOL.md`.
-2. Начать работу от актуального `main` после merge TASK-017/PR #16.
-3. Создать отдельную ветку для TASK-018.
-4. Провести аудит текущего верхнего интерфейса в:
-   - `frontend/src/App.tsx`;
-   - `frontend/src/index.css`;
-   - соответствующих frontend integration tests.
-5. Переработать только верхний HUD/status bar и непосредственно связанные responsive styles.
-6. На мобильной ширине сделать верхний блок существенно компактнее по высоте:
-   - объединить время, день и период в одну компактную строку или компактную карточку;
-   - уменьшить избыточные внутренние отступы и вертикальные интервалы;
-   - не использовать чрезмерно крупный размер времени;
-   - сократить высоту кнопки `Продолжить день`, сохранив удобную touch target area;
-   - характеристики разместить компактнее, предпочтительно в одну горизонтальную прокручиваемую строку или другую устойчивую mobile-компоновку;
-   - не допускать переноса каждой характеристики в высокий отдельный блок.
-7. Сохранить в верхнем блоке всю текущую информацию:
-   - время;
-   - номер дня;
-   - название периода;
-   - следующий переход дня;
-   - любовь;
-   - сытость;
-   - энергия;
-   - спокойствие;
-   - доверие.
-8. Сохранить progress indicators характеристик, но допускается сделать их тоньше и компактнее.
-9. Не скрывать характеристики за дополнительным modal/menu и не требовать лишнего нажатия для просмотра основных значений.
-10. Обеспечить корректное отображение минимум на ширинах:
-    - 320 px;
-    - 375–390 px;
-    - 430 px;
-    - desktop/tablet layout без ухудшения текущей компоновки.
-11. Учесть Telegram safe-area inset и не допустить наложения на системный верхний интерфейс.
-12. Основная сцена с Мариной должна начинаться заметно выше, чем сейчас, особенно на мобильном экране.
-13. Не менять:
-    - backend API;
-    - игровую экономику;
-    - порядок периодов дня;
-    - значения характеристик;
-    - Telegram auth;
-    - CORS;
-    - database schema/Alembic;
-    - personality/memory logic;
-    - нижнюю навигацию и action cards вне минимально необходимого responsive выравнивания.
-14. Сохранить accessibility:
-    - читаемые labels;
-    - `aria-busy` для перехода дня;
-    - достаточную touch target area;
-    - focus-visible states;
-    - поддержку reduced motion.
-15. Добавить/обновить frontend tests минимум для:
-    - наличия времени, дня, периода и кнопки перехода;
-    - наличия всех пяти характеристик после перестройки HUD;
-    - сохранения `aria-busy`/disabled behavior кнопки перехода;
-    - отсутствия функциональной регрессии day advance.
-16. По возможности добавить устойчивые CSS assertions или DOM-структуру, позволяющую проверить компактную mobile layout без привязки к пиксельному screenshot test.
-17. Обновить только релевантные документы:
+2. Начать работу от актуального `main` после merge TASK-018/PR #17.
+3. Создать отдельную ветку для TASK-019.
+4. Провести аудит всех deployment-настроек репозитория:
+   - root `railway.json` / `railway.toml`, если существуют;
+   - `frontend/railway.json` / `frontend/railway.toml`;
+   - `backend/railway.json` / `backend/railway.toml`;
+   - Dockerfiles;
+   - build/start commands;
+   - README и deployment-разделы документов;
+   - GitHub Actions/workflows, если они участвуют в deploy.
+5. Установить и задокументировать точную причину ручного выбора ветки:
+   - production Railway service connected to a `task-*` branch instead of `main`;
+   - automatic deployment trigger disabled or waiting for CI;
+   - либо другая подтверждённая причина.
+6. Не утверждать, что Railway UI изменён, если Codex не имеет доступа к Railway project settings.
+7. Подготовить корректную production configuration policy:
+   - frontend production service source branch: `main`;
+   - backend production service source branch: `main`;
+   - automatic deploy on new commit to `main`: enabled;
+   - временные `task-*` branches не должны быть production source;
+   - PR branches могут использоваться только для preview environments, если это явно настроено отдельно.
+8. Проверить, не мешают ли автодеплою repository config или workflow settings:
+   - неверный root directory;
+   - branch-specific build config;
+   - disabled deploy trigger;
+   - `Wait for CI` при отсутствии/неуспешном required workflow;
+   - несовпадение frontend/backend service paths;
+   - manual-only deployment configuration.
+9. Если проблема исправляется кодом/config-файлами репозитория — внести минимально необходимые изменения.
+10. Если проблема находится только в Railway UI — не пытаться имитировать исправление кодом. Вместо этого добавить точную operator instruction для обоих production-сервисов:
+    - открыть service → Settings/Source;
+    - изменить connected branch на `main`;
+    - включить automatic deployment trigger;
+    - при наличии `Wait for CI` либо подтвердить рабочий required workflow, либо отключить ожидание до появления CI;
+    - сохранить настройки;
+    - один раз запустить deployment последнего commit `main`;
+    - проверить, что следующий merge в `main` создаёт deployment автоматически.
+11. Добавить безопасную проверку/guardrail в документацию или workflow, чтобы production не оставался на `task-*` ветке незаметно. Допустимые варианты:
+    - deployment checklist;
+    - documented source-branch invariant;
+    - CI/check script, проверяющий repository-side assumptions, если Railway branch metadata недоступна;
+    - release checklist с обязательной проверкой branch=`main`.
+12. Не добавлять Railway API tokens, project IDs, environment secrets или другие credentials в репозиторий.
+13. Не менять gameplay, frontend UI, backend API, economy, database schema, Telegram auth, CORS или personality logic.
+14. Обновить только релевантные документы:
+    - `README.md`;
     - `docs/ARCHITECTURE.md`;
     - `docs/PROJECT_STATE.md`;
     - `docs/ROADMAP.md`;
+    - `docs/TECH_DEBT.md`;
     - `docs/CHANGELOG.md`;
     - `docs/REPORT.md`.
-18. В `docs/REPORT.md` указать:
-    - какие элементы верхнего HUD были причиной избыточной высоты;
-    - как изменена mobile-компоновка;
-    - какие desktop/tablet свойства сохранены;
-    - какие тесты выполнены;
-    - ограничения проверки реального Telegram WebView, если скриншот устройства недоступен.
-19. После завершения изменить статус задачи на `DONE`, сделать commit, push и открыть отдельный PR в `main`.
-20. Merge и production deploy не выполнять.
+15. В `docs/REPORT.md` указать:
+    - подтверждённую причину отсутствия автоматического deploy после merge;
+    - какие repository configs проверены;
+    - какие файлы изменены;
+    - какие действия выполнены кодом;
+    - какие действия должен выполнить оператор в Railway UI;
+    - как проверить первый и следующий автоматический deploy;
+    - ограничения доступа Codex к Railway settings.
+16. После завершения изменить статус задачи на `DONE`, сделать commit, push и открыть отдельный PR в `main`.
+17. Merge и изменение production Railway settings от имени пользователя не выполнять.
 
 ## Validation
 - `git status --short --branch`
 - `git diff --check`
-- `cd frontend && npm ci`
-- `cd frontend && npm test -- --run`
-- `cd frontend && npm run build`
-- проверить, что mobile CSS для 320–430 px не создаёт horizontal overflow страницы
-- проверить, что характеристики остаются доступны и читаемы
-- проверить, что кнопка перехода дня остаётся рабочей и корректно показывает pending state
-- `cd backend && pytest -q` только как regression check, если frontend изменения затрагивают общие test setup/config
+- проверить все Railway config files и service root/build/start expectations
+- проверить GitHub workflows, связанные с frontend/backend build or deploy
+- подтвердить, что repository documentation однозначно требует production source branch `main`
+- подтвердить отсутствие секретов и branch-specific task names в production config
+- выполнить существующие frontend/backend tests только если изменены runtime/build config files
+
+## Production Verification
+После merge TASK-019 оператор должен проверить в Railway для frontend и backend:
+1. Connected branch = `main`.
+2. Automatic deployments enabled.
+3. `Wait for CI` не блокирует deployment без рабочего required workflow.
+4. Последний commit `main` задеплоен в production.
+5. Следующий тестовый merge в `main` автоматически создаёт deployment без ручного выбора ветки.
+6. Frontend и backend deployment используют один и тот же актуальный `main` commit или ожидаемую пару commit/deployment revisions.
 
 ## Acceptance Criteria
-- Верхний HUD на мобильном экране заметно ниже текущего.
-- Основная сцена начинается выше и занимает больше видимой области первого экрана.
-- Время, день, период, переход дня и все пять характеристик сохранены.
-- Значения и progress indicators читаемы на ширине 320 px.
-- Нет горизонтального overflow всей страницы.
-- Кнопка `Продолжить день` остаётся удобной и функциональной.
-- Telegram safe-area и accessibility сохранены.
-- Desktop/tablet layout не ухудшен.
-- Frontend tests и production build проходят.
+- Причина ручного выбора task-ветки подтверждена и задокументирована.
+- Production policy для обоих Railway services закреплена: source branch только `main`.
+- Repository deployment config не содержит привязки к `task-*` веткам.
+- Точная инструкция изменения Railway UI подготовлена, если Codex не может изменить настройку напрямую.
+- Automatic deployment after merge в `main` имеет однозначный verification procedure.
+- Не внесены несвязанные runtime/gameplay изменения.
+- Не добавлены секреты.
 - Создан отдельный PR в `main`.
 - После завершения статус задачи установлен в `DONE`.
 
 ## Restrictions
-- Не удалять важные показатели ради компактности.
-- Не скрывать основные характеристики в popup/modal/menu.
-- Не делать текст слишком мелким для мобильного экрана.
-- Не менять игровые значения или backend contracts.
-- Не добавлять тяжёлые UI frameworks или новые внешние зависимости.
-- Не коммитить `node_modules`, `dist`, screenshots, coverage или другие generated artifacts.
+- Не подключать production к `task-*` branch.
+- Не деплоить PR branch как production workaround.
+- Не хранить Railway tokens/project IDs/secrets в GitHub.
+- Не заявлять об изменении Railway UI без фактического доступа и подтверждения.
+- Не менять frontend/backend runtime behavior без доказанной необходимости.
 - Не выполнять merge и production deploy.
 - Не продолжать работу после установки статуса `DONE`.
