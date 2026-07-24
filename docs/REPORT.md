@@ -70,5 +70,5 @@ SUCCESS
 YES
 
 ## Commit / PR
-- Implementation commit: TBD
-- Pull Request: TBD
+- Implementation commit: 01a2ef4a4eb4384cb486964f9a90a0eed97e8980
+- Pull Request: PR #20
