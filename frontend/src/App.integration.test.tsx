@@ -157,12 +157,32 @@ describe('App Telegram integration flows', () => {
     expect(screen.getByRole('button', { name: /Продолжить день/i })).toHaveClass('compact-advance-button')
 
     const stats = within(screen.getByLabelText('Характеристики Марины'))
-    for (const label of ['Любовь', 'Настроение', 'Сытость', 'Энергия', 'Спокойствие']) {
+    for (const label of ['Любовь', 'Настроение', 'Энергия', 'Сытость', 'Спокойствие']) {
       expect(stats.getByText(label)).toBeInTheDocument()
     }
+
+    const statLabels = Array.from(hud.querySelectorAll('.compact-mini-stat span')).map((node) => node.textContent)
+    expect(statLabels).toEqual(['Любовь', 'Настроение', 'Энергия', 'Сытость', 'Спокойствие'])
+    expect(hud.querySelector('.compact-time-card')).toBeInTheDocument()
+    expect(hud.querySelector('.compact-stats-row')).toBeInTheDocument()
     expect(screen.getAllByRole('article')).toHaveLength(5)
     expect(document.querySelectorAll('.compact-mini-stat')).toHaveLength(5)
     expect(document.querySelectorAll('.compact-meter')).toHaveLength(5)
+  })
+
+
+  it('keeps scene bottom controls and the talk button in a dedicated scene control group', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(jsonResponse(player()))
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<App />)
+    await screen.findByText('День 4')
+
+    const controls = screen.getByLabelText('Фокус и разговор')
+    expect(controls).toHaveClass('scene-bottom-controls')
+    expect(controls).toContainElement(screen.getByText('Фокус сейчас').closest('aside'))
+    expect(controls).toContainElement(screen.getByRole('button', { name: /Поговорить/i }))
+    expect(screen.getByRole('navigation', { name: 'Основная навигация' })).toContainElement(screen.getByRole('button', { name: /Главная/i }))
   })
 
   it('sends chat messages with initData and an idempotency key, then renders Marina reply', async () => {

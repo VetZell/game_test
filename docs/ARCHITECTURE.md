@@ -127,3 +127,9 @@
 ## TASK-019 Railway production deploy source
 - Repository audit found `railway.json`, `frontend/railway.json`, and `backend/railway.json` contain Dockerfile/healthcheck/restart settings only and no branch selector; the observed production service attachment to `task-017-production-idempotency-migration` is therefore Railway UI/source configuration rather than repository config.
 - Production release invariant: frontend and backend Railway production services must be connected to `main`, have automatic deploys enabled for `main`, and must not use `task-*` branches except for separately configured preview environments.
+
+
+## TASK-020 mobile layout notes
+- `frontend/src/App.tsx` groups top scene overlays in `.scene-top-overlays` and bottom scene CTA/focus content in `.scene-bottom-controls` so CSS can control stacking and avoid collisions with fixed navigation.
+- `frontend/src/index.css` keeps `.hud-panel` as a one-row flex container at mobile sizes; `.time-card` stays on the left and `.stats-row` is the only horizontally scrollable region for all five stat cards.
+- Requested viewport checks were run with a local production build plus Playwright/Chromium at 320×568, 375×667, 390×844 and 430×932, validating no page-level horizontal overflow and no bottom-nav/scene-control bounding-box overlap.

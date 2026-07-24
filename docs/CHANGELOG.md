@@ -1,5 +1,11 @@
 # Changelog
 
+## TASK-020 — Mobile layout overlap and clipping fix
+- Reworked the top HUD into a single horizontal panel with the time/day/period/day-advance block fixed on the left and Love/Mood/Energy/Hunger/Calm stats scrollable on the right at 320–430 px.
+- Grouped scene top overlays and scene-bottom focus/chat controls to avoid wallet/speech intersections and bottom navigation overlap.
+- Kept bottom navigation as a stable safe-area-aware single row with readable labels, without changing backend APIs, gameplay values, day progression or economy.
+- Expanded frontend integration and Playwright/Chromium responsive validation for mobile viewports.
+
 ## 2026-07-22
 - Added the file-based ChatGPT ↔ Codex task workflow.
 - Added repository-level `AGENTS.md` instructions.

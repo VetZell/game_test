@@ -338,8 +338,8 @@ export default function App() {
     return [
       { label: 'Любовь', value: m?.love ?? 50, icon: Heart, className: 'pink' },
       { label: 'Настроение', value: m?.mood ?? 80, icon: Smile, className: 'orange' },
-      { label: 'Сытость', value: m?.hunger ?? 80, icon: Utensils, className: 'green' },
       { label: 'Энергия', value: m?.energy ?? 100, icon: Zap, className: 'blue' },
+      { label: 'Сытость', value: m?.hunger ?? 80, icon: Utensils, className: 'green' },
       { label: 'Спокойствие', value: m?.calm ?? 75, icon: ShieldCheck, className: 'purple' },
     ]
   }, [player])
@@ -393,15 +393,19 @@ export default function App() {
           <div className="room-sofa"><span/><span/></div><div className="room-rug"/><div className="room-floor"/>
         </div>
 
-        <aside className="left-rail" aria-label="Ресурсы игрока">
-          <div className="wallet-card"><div><span className="coin-dot" aria-hidden="true">◉</span><span>Монеты</span><strong>{currentPlayer.coins}</strong></div><div><Gem size={19} aria-hidden="true"/><span>Кристаллы</span><strong>{currentPlayer.crystals}</strong></div></div>
-        </aside>
+        <div className="scene-top-overlays">
+          <aside className="left-rail" aria-label="Ресурсы игрока">
+            <div className="wallet-card"><div><span className="coin-dot" aria-hidden="true">◉</span><span>Монеты</span><strong>{currentPlayer.coins}</strong></div><div><Gem size={19} aria-hidden="true"/><span>Кристаллы</span><strong>{currentPlayer.crystals}</strong></div></div>
+          </aside>
+          <div className="speech-bubble" aria-live="polite"><div className="speech-title"><Heart size={17} aria-hidden="true"/><strong>Марина</strong><span>{emotionDisplay.label}</span></div><p>{message}</p></div>
+        </div>
 
         <div className={`marina-character visual-${activeVisual} tone-${emotionDisplay.tone}`}><div className="marina-aura"/><img src={marinaImage} alt={`Марина: ${emotionDisplay.label}`} draggable={false}/><span className="emotion-badge">{emotionDisplay.label}</span></div>
 
-        <div className="speech-bubble" aria-live="polite"><div className="speech-title"><Heart size={17} aria-hidden="true"/><strong>Марина</strong><span>{emotionDisplay.label}</span></div><p>{message}</p></div>
-        <aside className="wish-card"><strong>Фокус сейчас</strong><span>Эмоция: {emotionDisplay.label}</span><span>Следующий переход: {currentPeriod.nextLabel}</span></aside>
-        <button type="button" className="talk-button" onClick={() => { showVisual('talk', 2200); setChatOpen(true) }}><MessageCircle size={22} aria-hidden="true"/><span>Поговорить<small>Марина помнит диалог</small></span></button>
+        <div className="scene-bottom-controls" aria-label="Фокус и разговор">
+          <aside className="wish-card"><strong>Фокус сейчас</strong><span>Эмоция: {emotionDisplay.label}</span><span>Следующий переход: {currentPeriod.nextLabel}</span></aside>
+          <button type="button" className="talk-button" onClick={() => { showVisual('talk', 2200); setChatOpen(true) }}><MessageCircle size={22} aria-hidden="true"/><span>Поговорить<small>Марина помнит диалог</small></span></button>
+        </div>
       </section>
 
       <section className="action-section"><div className="section-heading"><h2>Чем займёмся?</h2><span>Опыт {currentPlayer.experience}</span></div><div className="action-grid">{actions.map(({ id, title, reward, cost, icon: Icon, visual, duration }) => (

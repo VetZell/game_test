@@ -78,3 +78,9 @@
 ## TASK-019 Railway Main Auto Deploy
 - Repository deployment config was audited for branch-specific production settings: `railway.json`, `frontend/railway.json`, `backend/railway.json`, Dockerfiles and `.github/workflows/ci.yml` do not pin production to a `task-*` branch.
 - The confirmed deployment blocker is Railway service UI/source configuration shown by the user: production was connected to a task branch, so merges to `main` could not trigger production automatically. Codex cannot change Railway UI without Railway project credentials, so the repository now documents the operator checklist and invariant `production source branch = main` for both frontend and backend services.
+
+
+## TASK-020 Mobile Layout
+- The top HUD is a single horizontal panel: compact time/day/period/day-advance controls stay fixed on the left, while `Любовь`, `Настроение`, `Энергия`, `Сытость`, and `Спокойствие` remain in the same row on the right with internal horizontal scrolling on narrow mobile widths.
+- Scene top overlays are grouped to prevent wallet/resources and Marina speech card intersections; scene-bottom `Фокус сейчас` and `Поговорить` controls share an explicit layout container and avoid the fixed safe-area bottom navigation.
+- The bottom navigation remains a readable single row on 320–430 px and no backend/API/gameplay/database behavior changed in TASK-020.
