@@ -22,6 +22,7 @@
 - TASK-018 compact top status bar: reduced mobile HUD height while preserving day/time/period, day advance, five visible stats, safe-area behavior and frontend coverage.
 - TASK-019 Railway main auto deploy policy: audited repository Railway/Docker/GitHub workflow config and documented the production invariant that frontend/backend Railway services must track `main` with automatic deploys enabled.
 - TASK-020 mobile layout repair: fixed one-row HUD, mobile stat scrolling, scene overlay grouping and bottom navigation spacing/stacking with responsive validation.
+- TASK-021 compact no-scroll HUD: removed mobile horizontal stat scrolling and fit time/day/period/day-advance plus all five stats in one visible top row.
 
 ## Next
 1. In Railway UI, switch frontend/backend production services to connected branch `main`, enable automatic deploys, verify `Wait for CI`, deploy the latest `main` commit once, and confirm the next merge auto-deploys.
@@ -31,6 +32,3 @@
 5. Production readiness and release monitoring.
 
 > Roadmap statuses must be updated only after verification in the repository.
-
-## Completed
-- TASK-021 compact no-scroll HUD: removed mobile horizontal stat scrolling and fit time/day/period/day-advance plus all five stats in one visible top row.
