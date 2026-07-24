@@ -31,3 +31,6 @@
 5. Production readiness and release monitoring.
 
 > Roadmap statuses must be updated only after verification in the repository.
+
+## Completed
+- TASK-021 compact no-scroll HUD: removed mobile horizontal stat scrolling and fit time/day/period/day-advance plus all five stats in one visible top row.

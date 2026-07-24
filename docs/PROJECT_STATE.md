@@ -84,3 +84,6 @@
 - The top HUD is a single horizontal panel: compact time/day/period/day-advance controls stay fixed on the left, while `Любовь`, `Настроение`, `Энергия`, `Сытость`, and `Спокойствие` remain in the same row on the right with internal horizontal scrolling on narrow mobile widths.
 - Scene top overlays are grouped to prevent wallet/resources and Marina speech card intersections; scene-bottom `Фокус сейчас` and `Поговорить` controls share an explicit layout container and avoid the fixed safe-area bottom navigation.
 - The bottom navigation remains a readable single row on 320–430 px and no backend/API/gameplay/database behavior changed in TASK-020.
+## TASK-021 Compact No-Scroll HUD
+- The mobile HUD no longer uses a horizontal stat scroll: the compact time/day/period/day-advance block and all five stats (`Любовь`, `Настроение`, `Энергия`, `Сытость`, `Спокойствие`) fit in one visible row on 320–430 px.
+- Visual stat labels are shortened to fit (`Люб`, `Настр`, `Эн`, `Сыт`, `Спок`) while full stat names remain in accessible `aria-label`s; `/100` values and progress meters remain visible.
