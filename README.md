@@ -43,6 +43,29 @@ ENVIRONMENT=production
 
 `VITE_API_URL` должен быть HTTPS origin backend без query/secrets; frontend нормализует trailing slash и строит endpoints `/api/v1/auth/telegram`, `/api/v1/chat`, `/api/v1/actions` и `/api/v1/day/advance` централизованно. Если `CORS_ORIGINS` не содержит точный frontend origin, browser/Telegram WebView заблокирует preflight до получения HTTP response от action endpoint, и frontend увидит это как network/fetch failure.
 
+### Railway production source branch policy
+
+Production Railway services must be connected to the repository `main` branch only:
+
+- frontend production service: **Settings → Source → Branch = `main`**;
+- backend production service: **Settings → Source → Branch = `main`**;
+- automatic deploys on new commits to `main`: **enabled** for both services;
+- `task-*` branches are for development Pull Requests only and must not be selected as production source branches;
+- PR branches may be used only by separately configured preview environments.
+
+The repository Railway config files (`railway.json`, `frontend/railway.json`, `backend/railway.json`) define Dockerfile builders, health checks and restart policy only; they do not store Railway's connected branch or automatic-deploy toggle. If Railway shows a production service connected to a `task-*` branch, fix it in Railway UI rather than adding branch-specific config to the repo:
+
+1. Open the production service in Railway.
+2. Go to **Settings → Source**.
+3. Set **Connected Branch** to `main`.
+4. Enable automatic deployments for new commits on `main`.
+5. If **Wait for CI** is enabled, either confirm the GitHub `CI` workflow is passing for `main` or disable waiting until a required workflow is configured and green.
+6. Save the service settings.
+7. Trigger one deployment of the latest `main` commit.
+8. After the next merge to `main`, verify Railway creates a new deployment automatically without manually selecting a task branch.
+
+Release checklist guardrail: before declaring production current, confirm both frontend and backend services show `Branch: main`, automatic deploys enabled, no `task-*` production source, and the deployed revision matches the expected latest `main` commit.
+
 ### Backend
 
 ```bash

@@ -20,11 +20,13 @@
 - TASK-016 production Frontend → Backend connectivity diagnosis: centralized API URL handling, safe action diagnostics and documented/covered CORS preflight requirements.
 - TASK-017 production idempotency migration repair: Alembic head now includes a follow-up revision that creates/repairs `idempotency_records` for baseline-stamped production-like databases and documents the required Railway operator migration command.
 - TASK-018 compact top status bar: reduced mobile HUD height while preserving day/time/period, day advance, five visible stats, safe-area behavior and frontend coverage.
+- TASK-019 Railway main auto deploy policy: audited repository Railway/Docker/GitHub workflow config and documented the production invariant that frontend/backend Railway services must track `main` with automatic deploys enabled.
 
 ## Next
-1. Run and verify `alembic upgrade head` against the real Railway production PostgreSQL database, confirming `idempotency_records` exists and idempotent action/day mutations succeed.
-2. Expand end-to-end and broader frontend component coverage beyond the current critical integration flows.
-3. Expand Marina content, emotions, activities and mini-games on top of the deterministic personality/memory policy.
-4. Production readiness and release monitoring.
+1. In Railway UI, switch frontend/backend production services to connected branch `main`, enable automatic deploys, verify `Wait for CI`, deploy the latest `main` commit once, and confirm the next merge auto-deploys.
+2. Run and verify `alembic upgrade head` against the real Railway production PostgreSQL database, confirming `idempotency_records` exists and idempotent action/day mutations succeed.
+3. Expand end-to-end and broader frontend component coverage beyond the current critical integration flows.
+4. Expand Marina content, emotions, activities and mini-games on top of the deterministic personality/memory policy.
+5. Production readiness and release monitoring.
 
 > Roadmap statuses must be updated only after verification in the repository.

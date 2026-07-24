@@ -101,3 +101,8 @@
 - Reworked the frontend top HUD into a more compact mobile layout with day/time/period in one card, a shorter day-advance control and compact horizontally accessible stat cards.
 - Preserved all required status data and progress meters while reducing mobile vertical spacing and keeping page-level horizontal overflow disabled.
 - Added Vitest/jsdom coverage for compact HUD structure, all five key stats and day-advance accessibility behavior.
+
+## TASK-019 — Railway production main auto deploy policy
+- Audited repository Railway config files, Dockerfiles and GitHub CI workflow and confirmed they do not encode a production `task-*` branch source.
+- Documented that Railway connected branch and automatic deployment trigger are service UI settings: frontend and backend production services must track `main`, with automatic deploys enabled after merges to `main`.
+- Added an operator checklist and release guardrail to prevent production from staying attached to temporary task branches.

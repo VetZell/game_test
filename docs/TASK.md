@@ -4,7 +4,7 @@
 TASK-019
 
 ## Status
-READY
+DONE
 
 ## Priority
 High
