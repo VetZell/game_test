@@ -4,7 +4,7 @@
 TASK-020
 
 ## Status
-READY
+DONE
 
 ## Priority
 High

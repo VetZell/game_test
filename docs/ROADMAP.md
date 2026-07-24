@@ -21,6 +21,7 @@
 - TASK-017 production idempotency migration repair: Alembic head now includes a follow-up revision that creates/repairs `idempotency_records` for baseline-stamped production-like databases and documents the required Railway operator migration command.
 - TASK-018 compact top status bar: reduced mobile HUD height while preserving day/time/period, day advance, five visible stats, safe-area behavior and frontend coverage.
 - TASK-019 Railway main auto deploy policy: audited repository Railway/Docker/GitHub workflow config and documented the production invariant that frontend/backend Railway services must track `main` with automatic deploys enabled.
+- TASK-020 mobile layout repair: fixed one-row HUD, mobile stat scrolling, scene overlay grouping and bottom navigation spacing/stacking with responsive validation.
 
 ## Next
 1. In Railway UI, switch frontend/backend production services to connected branch `main`, enable automatic deploys, verify `Wait for CI`, deploy the latest `main` commit once, and confirm the next merge auto-deploys.

@@ -1,84 +1,75 @@
 # Task
-TASK-019 — Исправить Railway production deploy: привязать frontend и backend к `main` и включить автоматический деплой после merge
+TASK-020 — Исправить mobile layout: убрать наложения, обрезание карточек и конфликт нижней навигации со сценой
 
 ## Status
 SUCCESS
 
 ## Summary
-- Audited repository-side Railway deployment configuration, Dockerfiles, build/start commands, GitHub CI workflow, README deployment guidance and project documentation.
-- Confirmed the repository config does not contain a production `task-*` branch selector: Railway JSON files define Dockerfile builders, health checks and restart policy only.
-- Confirmed the likely production blocker described by the user is Railway service UI/source state: a production service was connected to a temporary `task-*` branch instead of `main`, so merges to `main` cannot automatically trigger that service.
-- Did not claim Railway UI was changed; Codex has GitHub/repository access here, not Railway project settings or credentials.
-- Added a production source-branch policy and operator checklist: frontend and backend production services must use source branch `main`, automatic deployments must be enabled, and `task-*` branches must be PR/preview-only.
-- Added a release guardrail requiring operators to verify `Branch: main`, automatic deploy enabled, no blocking `Wait for CI`, and deployed revision equals the expected latest `main` commit.
-- No frontend/backend runtime behavior, gameplay, economy, database schema, Telegram auth, CORS, personality logic, Docker build commands or Railway health checks were changed.
+- Audited the mobile HUD, scene overlays, scene-bottom controls, chat CTA, action section and bottom navigation in `frontend/src/App.tsx`, `frontend/src/index.css`, and the existing frontend integration coverage.
+- Fixed the root HUD conflict: TASK-018 mobile CSS changed `.hud-panel` to a one-column grid at `max-width: 860px`, so the time/day card and characteristics became two stacked sections; the stats row then scrolled inside that second row and could look clipped on iPhone widths.
+- Reworked the HUD as one horizontal flex panel: compact time/day/period/day-advance card remains fixed on the left, and all five stats live in the right-side `.compact-stats-row` in the same row.
+- Preserved the required stat set and values, with visible order `Любовь`, `Настроение`, `Энергия`, `Сытость`, `Спокойствие`, and progress indicators for all five cards.
+- Made the stats area internally horizontally scrollable on 320–430 px with touch-friendly momentum scrolling, scroll snap, and a subtle edge fade, while preventing page-level horizontal overflow.
+- Fixed scene floating-card overlap by grouping wallet/resources and Marina speech into `.scene-top-overlays` with constrained widths on narrow screens.
+- Fixed the scene-bottom conflict by wrapping `Фокус сейчас` and the `Поговорить` CTA in `.scene-bottom-controls`; on narrow screens the controls stack inside the scene panel instead of colliding with fixed bottom navigation.
+- Increased bottom safe-area padding and kept the fixed navigation in a stable single-row grid so it does not cover scene-bottom controls or squeeze labels into overlapping text.
+- Kept backend API, gameplay economy, Telegram auth, CORS, database/Alembic, personality/memory logic, action content and day progression unchanged.
 
 ## Files Changed
-- `README.md` — added Railway production source branch policy, UI steps, automatic deploy verification and release checklist guardrail.
-- `docs/ARCHITECTURE.md` — documented that Railway branch/auto-deploy settings are service UI state, not repository JSON state, and recorded the TASK-019 invariant.
-- `docs/PROJECT_STATE.md` — recorded the deployment policy and confirmed repository config audit outcome.
-- `docs/TECH_DEBT.md` — added the required Railway UI operator action as unresolved high-priority operational debt.
-- `docs/ROADMAP.md` — marked repository-side TASK-019 policy/documentation work completed and moved Railway UI verification to next operator steps.
-- `docs/CHANGELOG.md` — added TASK-019 changelog entry.
-- `docs/TASK.md` — changed TASK-019 status to `DONE`.
+- `frontend/src/App.tsx` — reordered stats to the required HUD order, added `scene-top-overlays`, and added the explicit `scene-bottom-controls` wrapper around focus/chat controls.
+- `frontend/src/index.css` — converted mobile HUD to one horizontal flex row, added constrained internal stat scrolling, adjusted scene overlay/control layout, safe-area bottom padding, bottom navigation sizing and narrow viewport fallbacks.
+- `frontend/src/App.integration.test.tsx` — expanded frontend integration coverage for the one-row HUD structure, stat order/presence, scene-bottom controls, talk CTA and bottom navigation.
+- `docs/ARCHITECTURE.md` — updated frontend/current-boundary notes for TASK-020 layout behavior and responsive validation.
+- `docs/PROJECT_STATE.md` — recorded the corrected mobile HUD/scene/navigation state.
+- `docs/ROADMAP.md` — marked TASK-020 completed.
+- `docs/CHANGELOG.md` — added TASK-020 changelog entry.
+- `docs/TASK.md` — changed status from `READY` to `DONE`.
 - `docs/REPORT.md` — replaced with this report.
 
-## Repository Configs Audited
-- `railway.json` — root backend Dockerfile builder, `/health` check and restart policy; no branch selector, no manual-only flag, no secrets.
-- `backend/railway.json` — backend-root Dockerfile builder, `/health` check and restart policy; no branch selector, no manual-only flag, no secrets.
-- `frontend/railway.json` — frontend Dockerfile builder, `/` health check and restart policy; no branch selector, no manual-only flag, no secrets.
-- `Dockerfile` — root backend image includes Alembic assets/scripts and starts only Uvicorn; no branch-specific behavior.
-- `backend/Dockerfile` — backend-root image includes Alembic assets/scripts and starts only Uvicorn; no branch-specific behavior.
-- `frontend/Dockerfile` — frontend image uses deterministic npm install/build and serves `dist`; no branch-specific behavior.
-- `.github/workflows/ci.yml` — CI runs on push to `main`, pull requests to `main`, and manual dispatch; no deploy job or Railway branch setting is present.
-- README/docs deployment sections — updated to make production source branch `main` explicit.
-
 ## Problems Found
-- The user-provided Railway screenshot/context shows production was connected to a temporary task branch (`task-017-production-idempotency-migration`) rather than `main`.
-- Railway connected branch and automatic deploy trigger are service settings outside the repository JSON files audited here.
-- If `Wait for CI` is enabled in Railway while no required workflow is configured/green, deployments may remain blocked even after branch is corrected to `main`.
-- Previous repository documentation described Docker/root/build/migration expectations, but did not explicitly state the production source-branch invariant or task-branch prohibition.
+- Mobile HUD was explicitly switched to one-column layout at `max-width: 860px`, which violated the desired single horizontal panel and made stats feel like a separate clipped row.
+- The stats row used an internal horizontal scroll, but the surrounding HUD/card layout did not reserve a fixed left time block plus a flexible right scroll region in one row.
+- At small widths the top scene wallet card and Marina speech bubble could consume more horizontal space than the panel provided.
+- `Фокус сейчас` and `Поговорить` were separate absolute-positioned controls near the bottom of the scene; together with the fixed bottom nav this created a visual stacking/overlap risk.
+- The bottom nav switched to a 2×2 grid at `max-width: 430px`, increasing its height and worsening the chance of conflict with the scene bottom.
 
 ## Problems Fixed
-- Added clear documentation that both production Railway services must use `main` as source branch and have automatic deployments enabled for new commits to `main`.
-- Added exact operator UI steps for frontend and backend services: open service settings, set connected branch to `main`, enable automatic deployments, verify/disable blocking `Wait for CI`, save, deploy latest `main`, and verify the next merge auto-deploys.
-- Added repository-side guardrail via README release checklist and architecture/project-state documentation.
-- Confirmed no repository Railway config contains secrets, Railway project IDs/tokens, or production `task-*` branch pins.
+- `.hud-panel` is now a nowrap flex row on mobile and desktop; `.time-card` stays fixed on the left and `.stats-row` flexes to the right with `min-width: 0`.
+- `.stats-row` uses internal `overflow-x: auto`, `overscroll-behavior-x: contain`, `-webkit-overflow-scrolling: touch`, scroll snap and padding so the first and last stat cards can be fully reached without page overflow.
+- Scene top overlays are now one flex container with constrained wallet/speech widths for 320–430 px, avoiding card intersections and text escape.
+- Scene bottom controls are now one controlled stacking context inside `.scene-panel`; on narrow screens they become a compact vertical stack while preserving the talk button touch target.
+- Bottom navigation remains a stable single row on 320–430 px, uses safe-area bottom positioning, smaller gaps/padding and readable labels instead of creating a taller 2-row nav.
+- `game-shell` bottom padding now reserves additional space for the fixed nav and `env(safe-area-inset-bottom)`.
 
-## Operator Actions Still Required In Railway UI
-1. For the frontend production service, open **Settings → Source** and set connected branch to `main`.
-2. For the backend production service, open **Settings → Source** and set connected branch to `main`.
-3. Enable automatic deployments for new commits to `main` on both services.
-4. If **Wait for CI** is enabled, verify the GitHub `CI` workflow is the required check and passes on `main`; otherwise disable waiting until a reliable required workflow is configured.
-5. Save settings for both services.
-6. Trigger one deployment of the latest `main` commit for both services.
-7. After the next merge into `main`, confirm Railway creates deployments automatically without manually selecting a task branch.
-8. Confirm frontend and backend deployments point to the same expected latest `main` commit or an intentional compatible pair.
+## Responsive Validation
+- 320 × 568: PASS — no page-level horizontal overflow; HUD is one row; time block visible on the left; all five stat cards are reachable through stats scroll; bottom nav and scene-bottom controls do not overlap.
+- 375 × 667: PASS — no page-level horizontal overflow; HUD remains one row; stats scroll internally; bottom controls/nav bounding boxes do not intersect.
+- 390 × 844: PASS — no page-level horizontal overflow; HUD remains one row; last stat card scrolls fully into view; time block remains visible.
+- 430 × 932: PASS — no page-level horizontal overflow; HUD remains one row; all five stat cards are available; scene-bottom controls and nav remain separated.
 
 ## Tests
 - PASS — `git status --short --branch`
-- PASS — `find . -path './frontend/node_modules' -prune -o -iname 'railway.*' -print`
-- PASS — `find . -path './frontend/node_modules' -prune -o -path './.github/workflows/*' -type f -print`
-- PASS — `find . -path './frontend/node_modules' -prune -o -name 'Dockerfile' -print`
-- PASS — `sed -n '1,180p' railway.json backend/railway.json frontend/railway.json Dockerfile backend/Dockerfile frontend/Dockerfile .github/workflows/ci.yml`
-- PASS — `rg -n 'task-|branch|Railway|deploy|deployment|root directory|rootDirectory|startCommand|buildCommand|Dockerfile|Wait for CI|automatic' README.md docs .github railway.* frontend/railway.* backend/railway.* Dockerfile frontend/Dockerfile backend/Dockerfile`
-- PASS — repository production config audit: no Railway config or Dockerfile pins production to a `task-*` branch.
-- PASS — documentation now explicitly requires Railway production source branch `main` for frontend and backend services.
-- PASS — no Railway tokens, project IDs, environment secrets or credentials were added.
 - PASS — `git diff --check`
+- PASS — `cd frontend && npm ci`
+- PASS — `cd frontend && npm test -- --run`
+- PASS — `cd frontend && npm run build`
+- PASS — `cd frontend && npx playwright install chromium`
+- PASS — `cd frontend && npx playwright install-deps chromium`
+- PASS — `cd frontend && npx serve -s dist -l 4173` plus Playwright/Chromium responsive DOM and bounding-box assertions for 320×568, 375×667, 390×844 and 430×932.
+- PASS — confirmed via Playwright: HUD is one horizontal panel, time block is left of the stats area, no page-level horizontal overflow, all five stat cards are reachable, bottom nav and scene-bottom controls do not overlap, and the last HUD card scrolls fully into view.
+- PASS — `cd backend && pytest -q`
 
 ## Risks
-- Codex cannot verify or mutate actual Railway service settings without Railway project access/tokens, so the production branch switch and automatic deploy toggle remain operator actions.
-- If Railway `Wait for CI` is enabled against a missing/failing required workflow, automatic deploy may still be blocked until Railway settings are corrected.
-- This task intentionally did not run a production deploy or change Railway settings on behalf of the user.
+- Playwright checks run against the local production build with mocked Telegram WebApp/fetch, not inside the real Telegram iOS WebView or live Railway frontend. The repository layout behavior is validated at the requested viewport sizes, but final production confirmation still requires deployment and device/WebView viewing.
+- Internal horizontal stat scrolling is intentional on narrow screens; users must swipe the stat strip to see all cards at 320–430 px.
 
 ## Technical Debt
-- Operator must update Railway UI for both frontend and backend production services and verify one immediate latest-`main` deploy plus the next merge-triggered automatic deploy.
-- Existing production database migration debt remains separate: run `alembic upgrade head` against real Railway PostgreSQL and verify idempotency tables/mutations.
+- Existing operational debt remains: Railway production service source branch/automatic deploy settings and live Railway PostgreSQL `alembic upgrade head` still require operator verification outside Codex.
+- No new repository technical debt was added by TASK-020.
 
 ## Safe To Merge
 YES
 
 ## Commit / PR
-- Implementation commit: 07791e46e4ed64b24851fdc9d50e1605f029f5f6
-- Pull Request: https://github.com/VetZell/game_test/pull/18
+- Implementation commit: 9b9db976bc883f1aabf2a0b6ac48446fdfaa1fde
+- Pull Request: TBD
